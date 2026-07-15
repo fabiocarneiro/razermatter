@@ -72,3 +72,36 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
 *(Make sure your user is part of the `plugdev` group using `sudo usermod -aG plugdev $USER`)*. Once applied, you can run `cargo run --release` without `sudo`!
+
+### Running as a Service (systemd)
+To ensure the bridge starts automatically whenever your computer boots up, you can set it up as a `systemd` service.
+
+1. Create a service file at `/etc/systemd/system/razermatter.service` (you'll need `sudo`):
+```ini
+[Unit]
+Description=RazerMatter Smart Home Bridge
+After=network.target
+
+[Service]
+# If you configured the udev rules above, you can run this as your standard user!
+# Otherwise, change this to User=root
+User=fabio
+Group=plugdev
+WorkingDirectory=/home/fabio/razermatter
+ExecStart=/home/fabio/razermatter/target/release/razermatter
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+```
+*(Note: Replace `fabio` and `/home/fabio/razermatter` with your actual username and path).*
+
+2. Enable and start the service:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable razermatter.service
+sudo systemctl start razermatter.service
+```
+
+You can check its logs at any time using `journalctl -u razermatter.service -f`.
