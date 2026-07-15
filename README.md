@@ -1,6 +1,6 @@
 # RazerMatter
 
-RazerMatter is an Anti-Corruption Layer (ACL) and bridge that connects your Razer Chroma hardware natively into the modern **Matter** smart home ecosystem.
+RazerMatter is an Infrastructure Adapter and bridge that connects your Razer Chroma hardware natively into the modern **Matter** smart home ecosystem.
 
 By translating standard Matter lighting concepts (Level Control, Color Control, On/Off) into raw Razer USB HID payloads, RazerMatter allows you to control your Razer devices—such as the Thunderbolt 4 Chroma Dock—directly from apps like Google Home or Apple Home, without relying on any cloud services.
 
