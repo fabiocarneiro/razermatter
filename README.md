@@ -50,14 +50,6 @@ sudo ./target/debug/test_dock
 
 This will automatically cycle the dock through brightness off/on and static colors to ensure your USB payload logic is working.
 
-## Architecture & DDD
-
-This repository strongly embraces Domain-Driven Design (DDD). 
-
-- **Matter Domain:** Handled by `rs-matter`. It operates strictly using standard smart home clusters (`LevelControl`, `ColorControl`, etc.).
-- **Razer Domain:** The raw USB byte arrays, CRCs, and specific `VARSTORE` hardware logic.
-- **Bridge (Anti-Corruption Layer):** The `RazerDockLogic` structure implements the Matter hook traits (`OnOffHooks`, `LevelControlHooks`, `ColorControlHooks`), effectively translating the smart home semantic requests into the raw bytes the Razer hardware understands.
-
 ## Privacy & Security
 
 This project contains no hardcoded personal network information (no SSIDs, IPs, or MAC addresses). The Matter device utilizes public CHIP testing certificates during development. All pairing states (such as your fabric IDs) are stored securely in your system's temp directory (`/tmp/rs-matter`) and are explicitly git-ignored.
