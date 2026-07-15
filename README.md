@@ -52,4 +52,23 @@ This will automatically cycle the dock through brightness off/on and static colo
 
 ## Privacy & Security
 
+### No Hardcoded Secrets
 This project contains no hardcoded personal network information (no SSIDs, IPs, or MAC addresses). The Matter device utilizes public CHIP testing certificates during development. All pairing states (such as your fabric IDs) are stored securely in your system's temp directory (`/tmp/rs-matter`) and are explicitly git-ignored.
+
+### Running Without `sudo` (udev rules)
+By default, the Linux kernel restricts raw USB HID access to the `root` user, which is why the commands above use `sudo`. For better system security, it is highly recommended to run this daemon as a standard user. 
+
+You can grant your user permission to access the Razer dock by creating a `udev` rule.
+
+Create a file at `/etc/udev/rules.d/99-razer.rules`:
+```bash
+# Allow users in the "plugdev" group to access the Razer Thunderbolt 4 Dock
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0f21", MODE="0660", GROUP="plugdev"
+```
+
+Then, reload the udev rules and re-plug your dock:
+```bash
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+*(Make sure your user is part of the `plugdev` group using `sudo usermod -aG plugdev $USER`)*. Once applied, you can run `cargo run --release` without `sudo`!
