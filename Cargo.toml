@@ -1,0 +1,19 @@
+[package]
+name = "razermatter"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-io = "2.6.0"
+embassy-futures = "0.1.2"
+env_logger = "0.11.11"
+futures-lite = "2.6.1"
+hidapi = "2.6.6"
+if-addrs = "0.15.0"
+log = "0.4.33"
+rand = "0.8"
+rs-matter = { git = "https://github.com/project-chip/rs-matter", features = ["groups"] }
+socket2 = "0.6.5"
+tokio = "1"
+embassy-time = { version = "0.5", features = ["std"] }
+embassy-time-queue-utils = { version = "0.3", features = ["generic-queue-64"] }
