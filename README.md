@@ -25,56 +25,47 @@ By translating standard Matter lighting concepts (Level Control, Color Control, 
 
 ## Building & Running
 
+### 1. Build the binary
+
 To build the daemon in release mode:
 
 ```bash
 cargo build --release
 ```
 
-Since the application requires raw USB access to the Razer dock, you must run it with elevated privileges:
+### 2. Configure USB Permissions (udev rules)
 
-```bash
-sudo ./target/release/razermatter
-```
+By default, the Linux kernel restricts raw USB HID access to the `root` user. For better system security, it is highly recommended to run this daemon as a standard user instead of using `sudo`.
 
-When you first launch the daemon, it will print a standard Matter Pairing Code and a QR code in the terminal. You can scan this QR code using the Google Home or Apple Home app to pair the dock to your network.
+You can grant your user permission to access the Razer dock by creating a `udev` rule:
 
-## Testing Your Dock
-
-If you'd like to test the raw USB HID commands without launching the full Matter stack, a small test binary is included:
-
-```bash
-cargo build --bin test_dock
-sudo ./target/debug/test_dock
-```
-
-This will automatically cycle the dock through brightness off/on and static colors to ensure your USB payload logic is working.
-
-## Privacy & Security
-
-### No Hardcoded Secrets
-This project contains no hardcoded personal network information (no SSIDs, IPs, or MAC addresses). The Matter device utilizes public CHIP testing certificates during development. All pairing states (such as your fabric IDs) are stored securely in your system's temp directory (`/tmp/rs-matter`) and are explicitly git-ignored.
-
-### Running Without `sudo` (udev rules)
-By default, the Linux kernel restricts raw USB HID access to the `root` user, which is why the commands above use `sudo`. For better system security, it is highly recommended to run this daemon as a standard user. 
-
-You can grant your user permission to access the Razer dock by creating a `udev` rule.
-
-Create a file at `/etc/udev/rules.d/99-razer.rules`:
+1. Create a file at `/etc/udev/rules.d/99-razer.rules`:
 ```bash
 # Allow users in the "plugdev" group to access the Razer Thunderbolt 4 Dock
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0f21", MODE="0660", GROUP="plugdev"
 ```
 
-Then, reload the udev rules and re-plug your dock:
+2. Reload the udev rules and re-plug your dock:
 ```bash
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
-*(Make sure your user is part of the `plugdev` group using `sudo usermod -aG plugdev $USER`)*. Once applied, you can run `cargo run --release` without `sudo`!
+*(Make sure your user is part of the `plugdev` group using `sudo usermod -aG plugdev $USER`)*.
 
-### Running as a Service (systemd)
-To ensure the bridge starts automatically whenever your computer boots up, you can set it up as a `systemd` service.
+### 3. Run the daemon
+
+Once compiled and authorized via `udev`, you can run the daemon directly:
+
+```bash
+./target/release/razermatter
+```
+*(If you skipped the udev rules, you will need to run this with `sudo`)*.
+
+When you first launch the daemon, it will print a standard Matter Pairing Code and a QR code in the terminal. You can scan this QR code using the Google Home or Apple Home app to pair the dock to your network.
+
+### 4. Running as a Service (systemd)
+
+To ensure the bridge starts automatically whenever your computer boots up, you can set it up as a background `systemd` service.
 
 1. Create a service file at `/etc/systemd/system/razermatter.service` (you'll need `sudo`):
 ```ini
@@ -105,3 +96,19 @@ sudo systemctl start razermatter.service
 ```
 
 You can check its logs at any time using `journalctl -u razermatter.service -f`.
+
+## Testing Your Dock
+
+If you'd like to test the raw USB HID commands without launching the full Matter stack, a small test binary is included:
+
+```bash
+cargo build --bin test_dock
+./target/debug/test_dock
+```
+
+This will automatically cycle the dock through brightness off/on and static colors to ensure your USB payload logic is working.
+
+## Privacy & Security Considerations
+
+### No Hardcoded Secrets
+This project contains no hardcoded personal network information (no SSIDs, IPs, or MAC addresses). The Matter device utilizes public CHIP testing certificates during development. All pairing states (such as your fabric IDs) are stored securely in your system's temp directory (`/tmp/rs-matter`) and are explicitly git-ignored.
