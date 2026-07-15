@@ -85,17 +85,17 @@ After=network.target
 [Service]
 # If you configured the udev rules above, you can run this as your standard user!
 # Otherwise, change this to User=root
-User=fabio
+User=<your-username>
 Group=plugdev
-WorkingDirectory=/home/fabio/razermatter
-ExecStart=/home/fabio/razermatter/target/release/razermatter
+WorkingDirectory=/home/<your-username>/razermatter
+ExecStart=/home/<your-username>/razermatter/target/release/razermatter
 Restart=always
 RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
 ```
-*(Note: Replace `fabio` and `/home/fabio/razermatter` with your actual username and path).*
+*(Note: Replace `<your-username>` with your actual Linux username).*
 
 2. Enable and start the service:
 ```bash
