@@ -15,6 +15,7 @@ By translating standard Matter lighting concepts (Level Control, Color Control, 
 ## Current Device Support
 
 - Razer Thunderbolt 4 Dock Chroma (VID: `0x1532`, PID: `0x0F21`)
+- Razer Huntsman Tournament Edition (VID: `0x1532`, PID: `0x0243`)
 *(Note: Support for other Razer devices can be added by duplicating the endpoints and updating USB PID targets).*
 
 ## Prerequisites
@@ -43,6 +44,8 @@ You can grant your user permission to access the Razer dock by creating a `udev`
 ```bash
 # Allow users in the "plugdev" group to access the Razer Thunderbolt 4 Dock
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0f21", MODE="0660", GROUP="plugdev"
+# Allow users in the "plugdev" group to access the Razer Huntsman Tournament Edition
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0243", MODE="0660", GROUP="plugdev"
 ```
 
 2. Reload the udev rules and re-plug your dock:

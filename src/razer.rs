@@ -1,7 +1,8 @@
 pub use hidapi::{HidApi, HidDevice};
 
-const RAZER_VID: u16 = 0x1532;
-const DOCK_PID: u16 = 0x0F21;
+pub const RAZER_VID: u16 = 0x1532;
+pub const DOCK_PID: u16 = 0x0F21;
+pub const KBD_PID: u16 = 0x0243;
 
 fn calculate_crc(report: &[u8]) -> u8 {
     let mut crc = 0;
@@ -12,11 +13,11 @@ fn calculate_crc(report: &[u8]) -> u8 {
     crc
 }
 
-fn create_base_report(data_size: u8, command_class: u8, command_id: u8) -> [u8; 91] {
+fn create_base_report(transaction_id: u8, data_size: u8, command_class: u8, command_id: u8) -> [u8; 91] {
     let mut report = [0u8; 91];
     report[0] = 0x00; // hidapi Report ID
     report[1] = 0x00; // Status: Request
-    report[2] = 0x1F; // Transaction ID
+    report[2] = transaction_id; // Transaction ID
     report[3] = 0x00; // Remaining packets (High)
     report[4] = 0x00; // Remaining packets (Low)
     report[5] = 0x00; // Protocol Type
@@ -26,15 +27,15 @@ fn create_base_report(data_size: u8, command_class: u8, command_id: u8) -> [u8; 
     report
 }
 
-pub fn set_dock_lighting(on: bool) -> Result<(), &'static str> {
-    set_dock_brightness(if on { 255 } else { 0 })
+pub fn set_device_lighting(pid: u16, transaction_id: u8, on: bool) -> Result<(), &'static str> {
+    set_device_brightness(pid, transaction_id, if on { 255 } else { 0 })
 }
 
-pub fn set_dock_brightness(level: u8) -> Result<(), &'static str> {
+pub fn set_device_brightness(pid: u16, transaction_id: u8, level: u8) -> Result<(), &'static str> {
     let api = HidApi::new().map_err(|_| "Failed to initialize HID API")?;
-    let device = api.open(RAZER_VID, DOCK_PID).map_err(|_| "Failed to open Razer Dock")?;
+    let device = api.open(RAZER_VID, pid).map_err(|_| "Failed to open Razer Device")?;
     
-    let mut br_report = create_base_report(0x03, 0x0F, 0x04);
+    let mut br_report = create_base_report(transaction_id, 0x03, 0x0F, 0x04);
     let br_args = &mut br_report[9..89];
     br_args[0] = 0x01; // VARSTORE
     br_args[1] = 0x00; // ZERO_LED
@@ -45,11 +46,11 @@ pub fn set_dock_brightness(level: u8) -> Result<(), &'static str> {
     Ok(())
 }
 
-pub fn set_dock_color(r: u8, g: u8, b: u8) -> Result<(), &'static str> {
+pub fn set_device_color(pid: u16, transaction_id: u8, r: u8, g: u8, b: u8) -> Result<(), &'static str> {
     let api = HidApi::new().map_err(|_| "Failed to initialize HID API")?;
-    let device = api.open(RAZER_VID, DOCK_PID).map_err(|_| "Failed to open Razer Dock")?;
+    let device = api.open(RAZER_VID, pid).map_err(|_| "Failed to open Razer Device")?;
     
-    let mut report = create_base_report(0x09, 0x0F, 0x02);
+    let mut report = create_base_report(transaction_id, 0x09, 0x0F, 0x02);
     let args = &mut report[9..89];
     args[0] = 0x01; // VARSTORE
     args[1] = 0x00; // ZERO_LED
@@ -71,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_create_base_report() {
-        let report = create_base_report(0x05, 0x0F, 0x02);
+        let report = create_base_report(0x1F, 0x05, 0x0F, 0x02);
         
         assert_eq!(report.len(), 91);
         assert_eq!(report[0], 0x00); // hidapi Report ID
