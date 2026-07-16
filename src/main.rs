@@ -27,6 +27,11 @@ pub const DEV_TYPE_AGGREGATOR: DeviceType = DeviceType {
     dtype: 0x000E,
     drev: 1,
 };
+
+pub const DEV_TYPE_BRIDGED_NODE: DeviceType = DeviceType {
+    dtype: 0x0013,
+    drev: 1,
+};
 use rs_matter::dm::endpoints;
 use rs_matter::dm::networks::eth::EthNetwork;
 use rs_matter::dm::networks::SysNetifs;
@@ -283,7 +288,7 @@ const NODE: Node<'static> = Node {
         ),
         Endpoint::new(
             2, // Dock Endpoint
-            devices!(DEV_TYPE_EXTENDED_COLOR_LIGHT),
+            devices!(DEV_TYPE_BRIDGED_NODE, DEV_TYPE_EXTENDED_COLOR_LIGHT),
             clusters!(
                 desc::DescHandler::CLUSTER,
                 groups::GroupsHandler::CLUSTER,
@@ -294,7 +299,7 @@ const NODE: Node<'static> = Node {
         ),
         Endpoint::new(
             3, // Keyboard Endpoint
-            devices!(DEV_TYPE_EXTENDED_COLOR_LIGHT),
+            devices!(DEV_TYPE_BRIDGED_NODE, DEV_TYPE_EXTENDED_COLOR_LIGHT),
             clusters!(
                 desc::DescHandler::CLUSTER,
                 groups::GroupsHandler::CLUSTER,
