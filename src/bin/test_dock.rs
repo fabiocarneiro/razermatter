@@ -28,7 +28,7 @@ fn create_report(transaction_id: u8, data_size: u8, command_class: u8, command_i
     report
 }
 
-fn send_report(device: &hidapi::HidDevice, name: &str, mut report: [u8; 91]) {
+fn send_report(device: &hidapi::HidDevice, name: &str, report: [u8; 91]) {
     println!("Sending: {}", name);
     match device.send_feature_report(&report) {
         Ok(_) => println!(" -> Success"),

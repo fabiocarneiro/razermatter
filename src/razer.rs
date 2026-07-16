@@ -1,4 +1,4 @@
-pub use hidapi::{HidApi, HidDevice};
+pub use hidapi::HidApi;
 
 pub const RAZER_VID: u16 = 0x1532;
 pub const DOCK_PID: u16 = 0x0F21;
