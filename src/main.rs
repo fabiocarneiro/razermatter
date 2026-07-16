@@ -21,6 +21,12 @@ use rs_matter::dm::clusters::desc::{self, ClusterHandler as _};
 use rs_matter::dm::clusters::groups::{self, ClusterHandler as _};
 use rs_matter::dm::devices::test::{DAC_PRIVKEY, TEST_DEV_ATT, TEST_DEV_COMM, TEST_DEV_DET};
 use rs_matter::dm::devices::DEV_TYPE_EXTENDED_COLOR_LIGHT;
+use rs_matter::dm::DeviceType;
+
+pub const DEV_TYPE_AGGREGATOR: DeviceType = DeviceType {
+    dtype: 0x000E,
+    drev: 1,
+};
 use rs_matter::dm::endpoints;
 use rs_matter::dm::networks::eth::EthNetwork;
 use rs_matter::dm::networks::SysNetifs;
@@ -269,7 +275,14 @@ const NODE: Node<'static> = Node {
     endpoints: &[
         root_endpoint!(eth),
         Endpoint::new(
-            1, // Dock Endpoint
+            1, // Bridge / Aggregator Endpoint
+            devices!(DEV_TYPE_AGGREGATOR),
+            clusters!(
+                desc::DescHandler::CLUSTER
+            ),
+        ),
+        Endpoint::new(
+            2, // Dock Endpoint
             devices!(DEV_TYPE_EXTENDED_COLOR_LIGHT),
             clusters!(
                 desc::DescHandler::CLUSTER,
@@ -280,7 +293,7 @@ const NODE: Node<'static> = Node {
             ),
         ),
         Endpoint::new(
-            2, // Keyboard Endpoint
+            3, // Keyboard Endpoint
             devices!(DEV_TYPE_EXTENDED_COLOR_LIGHT),
             clusters!(
                 desc::DescHandler::CLUSTER,
@@ -307,28 +320,12 @@ fn data_model<'a, OH: OnOffHooks, LH: LevelControlHooks, CH: ColorControlHooks>(
         endpoints::EthSysHandlerBuilder::new()
             .netif_diag(&SysNetifs)
             .build(rand)
-            // Endpoint 1: Dock
+            // Endpoint 1: Bridge / Aggregator
             .chain(
                 EpClMatcher::new(Some(1), Some(desc::DescHandler::CLUSTER.id)),
-                Async(desc::DescHandler::new(Dataver::new_rand(&mut rand)).adapt()),
+                Async(desc::DescHandler::new_aggregator(Dataver::new_rand(&mut rand)).adapt()),
             )
-            .chain(
-                EpClMatcher::new(Some(1), Some(groups::GroupsHandler::CLUSTER.id)),
-                Async(groups::GroupsHandler::new(Dataver::new_rand(&mut rand)).adapt()),
-            )
-            .chain(
-                EpClMatcher::new(Some(1), Some(<RazerDeviceLogic as OnOffHooks>::CLUSTER.id)),
-                on_off::HandlerAsyncAdaptor(dock_on_off),
-            )
-            .chain(
-                EpClMatcher::new(Some(1), Some(<RazerDeviceLogic as LevelControlHooks>::CLUSTER.id)),
-                level_control::HandlerAsyncAdaptor(dock_level_control),
-            )
-            .chain(
-                EpClMatcher::new(Some(1), Some(<RazerDeviceLogic as ColorControlHooks>::CLUSTER.id)),
-                color_control::HandlerAsyncAdaptor(dock_color_control),
-            )
-            // Endpoint 2: Keyboard
+            // Endpoint 2: Dock
             .chain(
                 EpClMatcher::new(Some(2), Some(desc::DescHandler::CLUSTER.id)),
                 Async(desc::DescHandler::new(Dataver::new_rand(&mut rand)).adapt()),
@@ -339,14 +336,35 @@ fn data_model<'a, OH: OnOffHooks, LH: LevelControlHooks, CH: ColorControlHooks>(
             )
             .chain(
                 EpClMatcher::new(Some(2), Some(<RazerDeviceLogic as OnOffHooks>::CLUSTER.id)),
-                on_off::HandlerAsyncAdaptor(kbd_on_off),
+                on_off::HandlerAsyncAdaptor(dock_on_off),
             )
             .chain(
                 EpClMatcher::new(Some(2), Some(<RazerDeviceLogic as LevelControlHooks>::CLUSTER.id)),
-                level_control::HandlerAsyncAdaptor(kbd_level_control),
+                level_control::HandlerAsyncAdaptor(dock_level_control),
             )
             .chain(
                 EpClMatcher::new(Some(2), Some(<RazerDeviceLogic as ColorControlHooks>::CLUSTER.id)),
+                color_control::HandlerAsyncAdaptor(dock_color_control),
+            )
+            // Endpoint 3: Keyboard
+            .chain(
+                EpClMatcher::new(Some(3), Some(desc::DescHandler::CLUSTER.id)),
+                Async(desc::DescHandler::new(Dataver::new_rand(&mut rand)).adapt()),
+            )
+            .chain(
+                EpClMatcher::new(Some(3), Some(groups::GroupsHandler::CLUSTER.id)),
+                Async(groups::GroupsHandler::new(Dataver::new_rand(&mut rand)).adapt()),
+            )
+            .chain(
+                EpClMatcher::new(Some(3), Some(<RazerDeviceLogic as OnOffHooks>::CLUSTER.id)),
+                on_off::HandlerAsyncAdaptor(kbd_on_off),
+            )
+            .chain(
+                EpClMatcher::new(Some(3), Some(<RazerDeviceLogic as LevelControlHooks>::CLUSTER.id)),
+                level_control::HandlerAsyncAdaptor(kbd_level_control),
+            )
+            .chain(
+                EpClMatcher::new(Some(3), Some(<RazerDeviceLogic as ColorControlHooks>::CLUSTER.id)),
                 color_control::HandlerAsyncAdaptor(kbd_color_control),
             ),
     )
@@ -369,13 +387,13 @@ fn main() -> Result<(), Error> {
     let crypto = default_crypto(rand::thread_rng(), DAC_PRIVKEY);
     let mut rand = crypto.rand()?;
 
-    // Handlers for Dock (Endpoint 1)
+    // Handlers for Dock (Endpoint 2)
     let dock_logic = RazerDeviceLogic::new(razer::DOCK_PID, 0x1F);
     
-    let dock_on_off_handler = on_off::OnOffHandler::new(Dataver::new_rand(&mut rand), 1, dock_logic.clone());
+    let dock_on_off_handler = on_off::OnOffHandler::new(Dataver::new_rand(&mut rand), 2, dock_logic.clone());
     let dock_level_control_handler = level_control::LevelControlHandler::new(
         Dataver::new_rand(&mut rand),
-        1,
+        2,
         dock_logic.clone(),
         level_control::AttributeDefaults {
             on_level: Nullable::some(254),
@@ -384,21 +402,20 @@ fn main() -> Result<(), Error> {
         },
     );
     let dock_color_control_handler = color_control::ColorControlHandler::new(
-        Dataver::new_rand(&mut rand), 1, dock_logic.clone(), color_control::AttributeDefaults::default(),
+        Dataver::new_rand(&mut rand), 2, dock_logic.clone(), color_control::AttributeDefaults::default(),
     );
 
     dock_on_off_handler.init(Some(&dock_level_control_handler));
     dock_level_control_handler.init(Some(&dock_on_off_handler));
     dock_color_control_handler.init(Some(&dock_on_off_handler));
 
-    // Handlers for Keyboard (Endpoint 2)
-    // Most keyboards use 0x3F for transaction ID. If it fails, you can switch this back to 0x1F.
+    // Handlers for Keyboard (Endpoint 3)
     let kbd_logic = RazerDeviceLogic::new(razer::KBD_PID, 0x3F);
     
-    let kbd_on_off_handler = on_off::OnOffHandler::new(Dataver::new_rand(&mut rand), 2, kbd_logic.clone());
+    let kbd_on_off_handler = on_off::OnOffHandler::new(Dataver::new_rand(&mut rand), 3, kbd_logic.clone());
     let kbd_level_control_handler = level_control::LevelControlHandler::new(
         Dataver::new_rand(&mut rand),
-        2,
+        3,
         kbd_logic.clone(),
         level_control::AttributeDefaults {
             on_level: Nullable::some(254),
@@ -407,7 +424,7 @@ fn main() -> Result<(), Error> {
         },
     );
     let kbd_color_control_handler = color_control::ColorControlHandler::new(
-        Dataver::new_rand(&mut rand), 2, kbd_logic.clone(), color_control::AttributeDefaults::default(),
+        Dataver::new_rand(&mut rand), 3, kbd_logic.clone(), color_control::AttributeDefaults::default(),
     );
 
     kbd_on_off_handler.init(Some(&kbd_level_control_handler));
