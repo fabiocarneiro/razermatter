@@ -2,7 +2,7 @@
 
 RazerMatter is an Infrastructure Adapter and bridge that connects your Razer Chroma hardware natively into the modern **Matter** smart home ecosystem.
 
-By translating standard Matter lighting concepts (Level Control, Color Control, On/Off) into raw Razer USB HID payloads, RazerMatter allows you to control your Razer devices—such as the Thunderbolt 4 Chroma Dock—directly from apps like Google Home or Apple Home, without relying on any cloud services.
+By translating standard Matter lighting concepts (Level Control, Color Control, On/Off) into raw Razer USB HID payloads, RazerMatter allows you to control your Razer devices—such as the Thunderbolt 4 Chroma Dock or Huntsman Keyboards—directly from apps like Google Home or Apple Home, without relying on any cloud services.
 
 ## Features
 
@@ -38,7 +38,7 @@ cargo build --release
 
 By default, the Linux kernel restricts raw USB HID access to the `root` user. For better system security, it is highly recommended to run this daemon as a standard user instead of using `sudo`.
 
-You can grant your user permission to access the Razer dock by creating a `udev` rule:
+You can grant your user permission to access the Razer devices by creating a `udev` rule:
 
 1. Create a file at `/etc/udev/rules.d/99-razer.rules`:
 ```bash
@@ -48,7 +48,7 @@ SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0f21", MODE="06
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0243", MODE="0660", GROUP="plugdev"
 ```
 
-2. Reload the udev rules and re-plug your dock:
+2. Reload the udev rules and re-plug your devices:
 ```bash
 sudo udevadm control --reload-rules
 sudo udevadm trigger
@@ -64,7 +64,7 @@ Once compiled and authorized via `udev`, you can run the daemon directly:
 ```
 *(If you skipped the udev rules, you will need to run this with `sudo`)*.
 
-When you first launch the daemon, it will print a standard Matter Pairing Code and a QR code in the terminal. You can scan this QR code using the Google Home or Apple Home app to pair the dock to your network.
+When you first launch the daemon, it will print a standard Matter Pairing Code and a QR code in the terminal. You can scan this QR code using the Google Home or Apple Home app to pair the bridge to your network. Once paired, all supported devices will appear as separate lights!
 
 ### 4. Running as a Service (systemd)
 
@@ -100,7 +100,7 @@ sudo systemctl start razermatter.service
 
 You can check its logs at any time using `journalctl -u razermatter.service -f`.
 
-## Testing Your Dock
+## Testing Your Devices
 
 If you'd like to test the raw USB HID commands without launching the full Matter stack, a small test binary is included:
 
@@ -109,7 +109,7 @@ cargo build --bin test_dock
 ./target/debug/test_dock
 ```
 
-This will automatically cycle the dock through brightness off/on and static colors to ensure your USB payload logic is working.
+This will automatically cycle the connected dock through brightness off/on and static colors to ensure your USB payload logic is working. *(Note: `test_dock` is currently hardcoded for the dock's PID).*
 
 ## Privacy & Security Considerations
 
