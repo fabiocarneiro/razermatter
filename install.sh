@@ -136,7 +136,8 @@ sudo systemctl restart razermatter.service
 
 echo "================================================="
 echo "Installation Complete! RazerMatter is running in the background."
-echo ""
-echo "To pair your bridge to a Smart Home network, just run:"
-echo "    razermatter-pair"
 echo "================================================="
+echo ""
+
+# Automatically run the pairing utility to show the QR code (if not already paired)
+/usr/local/bin/razermatter-pair
