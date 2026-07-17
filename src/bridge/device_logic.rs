@@ -49,6 +49,14 @@ pub struct RazerDeviceLogic {
 
 impl RazerDeviceLogic {
     pub fn new(pid: u16, transaction_id: u8, led_id: u8, hardware: Arc<dyn DeviceHardware>) -> Self {
+        // Force hardware sync to match our initial software state (ON at 100% brightness)
+        let payload = RazerPayload::new_brightness(transaction_id, led_id, 255);
+        if let Err(e) = hardware.send_report(pid, &payload.data) {
+            log::error!("Failed to sync initial hardware state (PID: 0x{:04X}): {}", pid, e);
+        } else {
+            log::info!("Hardware synchronized to default ON state (PID: 0x{:04X})", pid);
+        }
+
         Self {
             pid,
             transaction_id,
