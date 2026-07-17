@@ -8,15 +8,30 @@ on:
 jobs:
   build-and-release:
     name: Build and Release
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: razermatter
+            asset_name: razermatter-linux-x86_64
+          - os: windows-latest
+            artifact_name: razermatter.exe
+            asset_name: razermatter-windows-x86_64.exe
+          - os: macos-latest
+            artifact_name: razermatter
+            asset_name: razermatter-macos-x86_64
+
     permissions:
       contents: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install DBus dependencies
-        run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -24,11 +39,16 @@ jobs:
       - name: Build release binary
         run: cargo build --release
 
-      - name: Rename binary for release
-        run: mv target/release/razermatter razermatter-linux-x86_64
+      - name: Rename binary for release (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: mv target/release/${{ matrix.artifact_name }} ${{ matrix.asset_name }}
+
+      - name: Rename binary for release (Windows)
+        if: matrix.os == 'windows-latest'
+        run: move target/release/${{ matrix.artifact_name }} ${{ matrix.asset_name }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: razermatter-linux-x86_64
+          files: ${{ matrix.asset_name }}
           generate_release_notes: true
