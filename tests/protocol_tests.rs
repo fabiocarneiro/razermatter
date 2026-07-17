@@ -1,4 +1,4 @@
-use razermatter_lib::protocol::RazerPayload;
+use razermatter_lib::protocol::razer::RazerPayload;
 
 #[test]
 fn test_create_color_payload() {

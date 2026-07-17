@@ -2,7 +2,7 @@ use core::pin::pin;
 use std::sync::{Arc, Mutex};
 use std::net::UdpSocket;
 use razermatter_lib::hardware::{DeviceHardware, razer::HidDeviceManager};
-use razermatter_lib::protocol::RazerPayload;
+use razermatter_lib::protocol::razer::RazerPayload;
 
 use embassy_futures::select::select4;
 use rs_matter::crypto::RngCore;
@@ -171,7 +171,7 @@ impl OnOffHooks for RazerDeviceLogic {
     fn set_on_off(&self, on: bool) {
         self.state.lock().unwrap().on_off = on;
         let payload = RazerPayload::new_brightness(self.transaction_id, self.led_id, if on { 255 } else { 0 });
-        if let Err(e) = self.hardware.send_report(self.pid, &payload) {
+        if let Err(e) = self.hardware.send_report(self.pid, &payload.data) {
             log::error!("Failed to set lighting (PID: 0x{:04X}): {}", self.pid, e);
         } else {
             log::info!("Lighting set to {} (PID: 0x{:04X})", on, self.pid);
@@ -221,7 +221,7 @@ impl LevelControlHooks for RazerDeviceLogic {
 
     fn set_device_level(&self, level: u8) -> Result<Option<u8>, ()> {
         let payload = RazerPayload::new_brightness(self.transaction_id, self.led_id, level);
-        if let Err(e) = self.hardware.send_report(self.pid, &payload) {
+        if let Err(e) = self.hardware.send_report(self.pid, &payload.data) {
             log::error!("Failed to set brightness (PID: 0x{:04X}): {}", self.pid, e);
         } else {
             log::info!("Brightness set to {} (PID: 0x{:04X})", level, self.pid);
@@ -308,7 +308,7 @@ impl ColorControlHooks for RazerDeviceLogic {
     fn set_device_color(&self, target: SetDeviceColor) -> Result<(), ()> {
         let (r, g, b) = target.to_rgb(rs_matter::dm::clusters::app::color_control::RgbGamma::Linear);
         let payload = RazerPayload::new_color(self.transaction_id, self.led_id, r, g, b);
-        if let Err(e) = self.hardware.send_report(self.pid, &payload) {
+        if let Err(e) = self.hardware.send_report(self.pid, &payload.data) {
             log::error!("Failed to set color (PID: 0x{:04X}): {}", self.pid, e);
         } else {
             log::info!("Color set to RGB({}, {}, {}) (PID: 0x{:04X})", r, g, b, self.pid);
