@@ -16,11 +16,13 @@ use rs_matter::dm::clusters::app::on_off::{
 use rs_matter::dm::clusters::decl::on_off as on_off_cluster;
 use rs_matter::dm::clusters::decl::level_control as level_control_cluster;
 use rs_matter::dm::clusters::decl::color_control as color_control_cluster;
-
 use rs_matter::dm::clusters::desc::{self, ClusterHandler as _};
 use rs_matter::dm::clusters::groups::{self, ClusterHandler as _};
+use rs_matter::dm::clusters::decl::bridged_device_basic_information::*;
+use rs_matter::dm::clusters::decl::bridged_device_basic_information;
 use rs_matter::dm::devices::test::{DAC_PRIVKEY, TEST_DEV_ATT, TEST_DEV_COMM, TEST_DEV_DET};
 use rs_matter::dm::devices::DEV_TYPE_EXTENDED_COLOR_LIGHT;
+use rs_matter::tlv::{TLVBuilderParent, Utf8StrBuilder};
 use rs_matter::dm::DeviceType;
 
 pub const DEV_TYPE_AGGREGATOR: DeviceType = DeviceType {
@@ -32,10 +34,63 @@ pub const DEV_TYPE_BRIDGED_NODE: DeviceType = DeviceType {
     dtype: 0x0013,
     drev: 1,
 };
+
+pub struct BridgedDeviceBasicInfoHandler {
+    pub name: &'static str,
+    dataver: Dataver,
+}
+
+impl BridgedDeviceBasicInfoHandler {
+    pub const fn new(dataver: Dataver, name: &'static str) -> Self {
+        Self { dataver, name }
+    }
+
+    pub const fn adapt(self) -> bridged_device_basic_information::HandlerAdaptor<Self> {
+        bridged_device_basic_information::HandlerAdaptor(self)
+    }
+}
+
+impl bridged_device_basic_information::ClusterHandler for BridgedDeviceBasicInfoHandler {
+    const CLUSTER: Cluster<'static> = bridged_device_basic_information::FULL_CLUSTER.with_attrs(with!(
+        AttributeId::NodeLabel | AttributeId::Reachable | AttributeId::VendorName | AttributeId::ProductName
+    ));
+    
+    fn dataver(&self) -> u32 {
+        self.dataver.get()
+    }
+    
+    fn dataver_changed(&self) {
+        self.dataver.changed();
+    }
+    
+    fn node_label<P: TLVBuilderParent>(&self, _ctx: impl ReadContext, builder: Utf8StrBuilder<P>) -> Result<P, Error> {
+        builder.set(self.name)
+    }
+    
+    fn product_name<P: TLVBuilderParent>(&self, _ctx: impl ReadContext, builder: Utf8StrBuilder<P>) -> Result<P, Error> {
+        builder.set(self.name)
+    }
+    
+    fn vendor_name<P: TLVBuilderParent>(&self, _ctx: impl ReadContext, builder: Utf8StrBuilder<P>) -> Result<P, Error> {
+        builder.set("Razer")
+    }
+
+    fn reachable(&self, _ctx: impl ReadContext) -> Result<bool, Error> {
+        Ok(true)
+    }
+
+    fn unique_id<P: TLVBuilderParent>(&self, _ctx: impl ReadContext, builder: Utf8StrBuilder<P>) -> Result<P, Error> {
+        builder.set("RAZER_BRIDGED")
+    }
+
+    fn handle_keep_active(&self, _ctx: impl rs_matter::dm::InvokeContext, _req: bridged_device_basic_information::KeepActiveRequest<'_>) -> Result<(), Error> {
+        Ok(())
+    }
+}
 use rs_matter::dm::endpoints;
 use rs_matter::dm::networks::eth::EthNetwork;
 use rs_matter::dm::networks::SysNetifs;
-use rs_matter::dm::{Async, Cluster, DataModel, Dataver, Endpoint, EpClMatcher, Node};
+use rs_matter::dm::{Async, Cluster, DataModel, Dataver, Endpoint, EpClMatcher, Node, ReadContext};
 use rs_matter::error::Error;
 use rs_matter::im::{EthInteractionModelState, InteractionModel};
 use rs_matter::pairing::qr::QrTextType;
@@ -290,6 +345,7 @@ const NODE: Node<'static> = Node {
             2, // Dock Endpoint
             devices!(DEV_TYPE_BRIDGED_NODE, DEV_TYPE_EXTENDED_COLOR_LIGHT),
             clusters!(
+                <BridgedDeviceBasicInfoHandler as bridged_device_basic_information::ClusterHandler>::CLUSTER,
                 desc::DescHandler::CLUSTER,
                 groups::GroupsHandler::CLUSTER,
                 <RazerDeviceLogic as OnOffHooks>::CLUSTER,
@@ -301,6 +357,7 @@ const NODE: Node<'static> = Node {
             3, // Keyboard Endpoint
             devices!(DEV_TYPE_BRIDGED_NODE, DEV_TYPE_EXTENDED_COLOR_LIGHT),
             clusters!(
+                <BridgedDeviceBasicInfoHandler as bridged_device_basic_information::ClusterHandler>::CLUSTER,
                 desc::DescHandler::CLUSTER,
                 groups::GroupsHandler::CLUSTER,
                 <RazerDeviceLogic as OnOffHooks>::CLUSTER,
@@ -313,9 +370,11 @@ const NODE: Node<'static> = Node {
 
 fn data_model<'a, OH: OnOffHooks, LH: LevelControlHooks, CH: ColorControlHooks>(
     mut rand: impl RngCore + Copy,
+    dock_basic_info: &'a BridgedDeviceBasicInfoHandler,
     dock_on_off: &'a on_off::OnOffHandler<'a, OH, LH>,
     dock_level_control: &'a level_control::LevelControlHandler<'a, LH, OH>,
     dock_color_control: &'a color_control::ColorControlHandler<'a, CH, OH, LH>,
+    kbd_basic_info: &'a BridgedDeviceBasicInfoHandler,
     kbd_on_off: &'a on_off::OnOffHandler<'a, OH, LH>,
     kbd_level_control: &'a level_control::LevelControlHandler<'a, LH, OH>,
     kbd_color_control: &'a color_control::ColorControlHandler<'a, CH, OH, LH>,
@@ -331,6 +390,10 @@ fn data_model<'a, OH: OnOffHooks, LH: LevelControlHooks, CH: ColorControlHooks>(
                 Async(desc::DescHandler::new_aggregator(Dataver::new_rand(&mut rand)).adapt()),
             )
             // Endpoint 2: Dock
+            .chain(
+                EpClMatcher::new(Some(2), Some(<BridgedDeviceBasicInfoHandler as bridged_device_basic_information::ClusterHandler>::CLUSTER.id)),
+                Async(bridged_device_basic_information::HandlerAdaptor(dock_basic_info)),
+            )
             .chain(
                 EpClMatcher::new(Some(2), Some(desc::DescHandler::CLUSTER.id)),
                 Async(desc::DescHandler::new(Dataver::new_rand(&mut rand)).adapt()),
@@ -352,6 +415,10 @@ fn data_model<'a, OH: OnOffHooks, LH: LevelControlHooks, CH: ColorControlHooks>(
                 color_control::HandlerAsyncAdaptor(dock_color_control),
             )
             // Endpoint 3: Keyboard
+            .chain(
+                EpClMatcher::new(Some(3), Some(<BridgedDeviceBasicInfoHandler as bridged_device_basic_information::ClusterHandler>::CLUSTER.id)),
+                Async(bridged_device_basic_information::HandlerAdaptor(kbd_basic_info)),
+            )
             .chain(
                 EpClMatcher::new(Some(3), Some(desc::DescHandler::CLUSTER.id)),
                 Async(desc::DescHandler::new(Dataver::new_rand(&mut rand)).adapt()),
@@ -394,6 +461,7 @@ fn main() -> Result<(), Error> {
 
     // Handlers for Dock (Endpoint 2)
     let dock_logic = RazerDeviceLogic::new(razer::DOCK_PID, 0x1F);
+    let dock_basic_info = BridgedDeviceBasicInfoHandler::new(Dataver::new_rand(&mut rand), "Razer Thunderbolt 4 Dock");
     
     let dock_on_off_handler = on_off::OnOffHandler::new(Dataver::new_rand(&mut rand), 2, dock_logic.clone());
     let dock_level_control_handler = level_control::LevelControlHandler::new(
@@ -416,6 +484,7 @@ fn main() -> Result<(), Error> {
 
     // Handlers for Keyboard (Endpoint 3)
     let kbd_logic = RazerDeviceLogic::new(razer::KBD_PID, 0x3F);
+    let kbd_basic_info = BridgedDeviceBasicInfoHandler::new(Dataver::new_rand(&mut rand), "Razer Huntsman TE Keyboard");
     
     let kbd_on_off_handler = on_off::OnOffHandler::new(Dataver::new_rand(&mut rand), 3, kbd_logic.clone());
     let kbd_level_control_handler = level_control::LevelControlHandler::new(
@@ -442,9 +511,11 @@ fn main() -> Result<(), Error> {
         &buffers,
         data_model(
             rand,
+            &dock_basic_info,
             &dock_on_off_handler,
             &dock_level_control_handler,
             &dock_color_control_handler,
+            &kbd_basic_info,
             &kbd_on_off_handler,
             &kbd_level_control_handler,
             &kbd_color_control_handler,
