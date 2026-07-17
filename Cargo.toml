@@ -17,3 +17,8 @@ socket2 = "0.6.5"
 tokio = "1"
 embassy-time = { version = "0.5", features = ["std"] }
 embassy-time-queue-utils = { version = "0.3", features = ["generic-queue-64"] }
+
+[[bin]]
+name = "test_hid"
+path = "src/bin/test_hid.rs"
+

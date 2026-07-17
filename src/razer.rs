@@ -32,8 +32,9 @@ pub fn set_device_lighting(pid: u16, transaction_id: u8, on: bool) -> Result<(),
 }
 
 pub fn set_device_brightness(pid: u16, transaction_id: u8, level: u8) -> Result<(), &'static str> {
-    let api = HidApi::new().map_err(|_| "Failed to initialize HID API")?;
-    let device = api.open(RAZER_VID, pid).map_err(|_| "Failed to open Razer Device")?;
+    let mut api = HidApi::new().map_err(|_| "Failed to initialize HID API")?;
+    // Refresh devices
+    let _ = api.refresh_devices();
     
     let mut br_report = create_base_report(transaction_id, 0x03, 0x0F, 0x04);
     let br_args = &mut br_report[9..89];
@@ -41,14 +42,33 @@ pub fn set_device_brightness(pid: u16, transaction_id: u8, level: u8) -> Result<
     br_args[1] = 0x00; // ZERO_LED
     br_args[2] = level;
     br_report[89] = calculate_crc(&br_report);
-    device.send_feature_report(&br_report).map_err(|_| "Failed to send brightness report")?;
 
-    Ok(())
+    let paths: Vec<_> = api.device_list()
+        .filter(|d| d.vendor_id() == RAZER_VID && d.product_id() == pid)
+        .map(|d| d.path().to_owned())
+        .collect();
+
+    let mut success = false;
+    for path in paths {
+        if let Ok(device) = api.open_path(&path) {
+            if device.send_feature_report(&br_report).is_ok() {
+                success = true;
+                break;
+            }
+        }
+    }
+
+    if success {
+        Ok(())
+    } else {
+        Err("Failed to send brightness report on any interface")
+    }
 }
 
 pub fn set_device_color(pid: u16, transaction_id: u8, r: u8, g: u8, b: u8) -> Result<(), &'static str> {
-    let api = HidApi::new().map_err(|_| "Failed to initialize HID API")?;
-    let device = api.open(RAZER_VID, pid).map_err(|_| "Failed to open Razer Device")?;
+    let mut api = HidApi::new().map_err(|_| "Failed to initialize HID API")?;
+    // Refresh devices
+    let _ = api.refresh_devices();
     
     let mut report = create_base_report(transaction_id, 0x09, 0x0F, 0x02);
     let args = &mut report[9..89];
@@ -61,9 +81,27 @@ pub fn set_device_color(pid: u16, transaction_id: u8, r: u8, g: u8, b: u8) -> Re
     args[8] = b;
     
     report[89] = calculate_crc(&report);
-    device.send_feature_report(&report).map_err(|_| "Failed to send feature report")?;
-    
-    Ok(())
+
+    let paths: Vec<_> = api.device_list()
+        .filter(|d| d.vendor_id() == RAZER_VID && d.product_id() == pid)
+        .map(|d| d.path().to_owned())
+        .collect();
+
+    let mut success = false;
+    for path in paths {
+        if let Ok(device) = api.open_path(&path) {
+            if device.send_feature_report(&report).is_ok() {
+                success = true;
+                break;
+            }
+        }
+    }
+
+    if success {
+        Ok(())
+    } else {
+        Err("Failed to send color feature report on any interface")
+    }
 }
 
 #[cfg(test)]
