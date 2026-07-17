@@ -93,9 +93,11 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: move target/release/${{ matrix.artifact_name }} ${{ matrix.asset_name }}
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && needs.bump-version.outputs.new_tag || github.ref_name }}
-          files: ${{ matrix.asset_name }}
-          generate_release_notes: true
+      - name: Create GitHub Release and Upload Asset
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && needs.bump-version.outputs.new_tag || github.ref_name }}
+        run: |
+          gh release create "$TAG_NAME" --generate-notes || true
+          gh release upload "$TAG_NAME" ${{ matrix.asset_name }} --clobber
