@@ -1,7 +1,7 @@
 use core::pin::pin;
 use std::sync::{Arc, Mutex};
 use std::net::UdpSocket;
-use razermatter_lib::hardware::{RazerHardware, HidDeviceManager};
+use razermatter_lib::hardware::{RazerHardware, razer::HidDeviceManager};
 use razermatter_lib::protocol::RazerPayload;
 
 use embassy_futures::select::select4;
@@ -477,7 +477,7 @@ fn main() -> Result<(), Error> {
     let hardware: Arc<dyn RazerHardware> = Arc::new(HidDeviceManager::new());
     
     // Handlers for Dock (Endpoint 2)
-    let dock_logic = RazerDeviceLogic::new(razermatter_lib::hardware::DOCK_PID, 0x1F, 0x00, hardware.clone());
+    let dock_logic = RazerDeviceLogic::new(razermatter_lib::hardware::razer::DOCK_PID, 0x1F, 0x00, hardware.clone());
     let dock_basic_info = BridgedDeviceBasicInfoHandler::new(Dataver::new_rand(&mut rand), "Razer Thunderbolt 4 Dock");
     
     let dock_on_off_handler = on_off::OnOffHandler::new(Dataver::new_rand(&mut rand), 2, dock_logic.clone());
@@ -500,7 +500,7 @@ fn main() -> Result<(), Error> {
     dock_color_control_handler.init(Some(&dock_on_off_handler));
 
     // Handlers for Keyboard (Endpoint 3)
-    let kbd_logic = RazerDeviceLogic::new(razermatter_lib::hardware::KBD_PID, 0x3F, 0x05, hardware.clone());
+    let kbd_logic = RazerDeviceLogic::new(razermatter_lib::hardware::razer::KBD_PID, 0x3F, 0x05, hardware.clone());
     let kbd_basic_info = BridgedDeviceBasicInfoHandler::new(Dataver::new_rand(&mut rand), "Razer Huntsman TE Keyboard");
     
     let kbd_on_off_handler = on_off::OnOffHandler::new(Dataver::new_rand(&mut rand), 3, kbd_logic.clone());
