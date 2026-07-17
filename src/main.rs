@@ -20,7 +20,7 @@ use rs_matter::dm::clusters::desc::{self, ClusterHandler as _};
 use rs_matter::dm::clusters::groups::{self, ClusterHandler as _};
 use rs_matter::dm::clusters::decl::bridged_device_basic_information::*;
 use rs_matter::dm::clusters::decl::bridged_device_basic_information;
-use rs_matter::dm::devices::test::{DAC_PRIVKEY, TEST_DEV_ATT, TEST_DEV_COMM, TEST_DEV_DET};
+use rs_matter::dm::devices::test::{DAC_PRIVKEY, TEST_DEV_ATT, TEST_DEV_COMM};
 use rs_matter::dm::devices::DEV_TYPE_EXTENDED_COLOR_LIGHT;
 use rs_matter::tlv::{TLVBuilderParent, Utf8StrBuilder};
 use rs_matter::dm::DeviceType;
@@ -442,12 +442,29 @@ fn data_model<'a, OH: OnOffHooks, LH: LevelControlHooks, CH: ColorControlHooks>(
     )
 }
 
+use rs_matter::dm::clusters::basic_info::BasicInfoConfig;
+use rs_matter::dm::devices::test::{TEST_VID, TEST_PID};
+
+pub const MY_DEV_DET: BasicInfoConfig = BasicInfoConfig {
+    vid: TEST_VID,
+    pid: TEST_PID,
+    hw_ver: 1,
+    hw_ver_str: "1",
+    sw_ver: 1,
+    sw_ver_str: "1",
+    serial_no: "123456789",
+    product_name: "razermatter",
+    vendor_name: "Razer",
+    device_name: "razermatter",
+    ..BasicInfoConfig::new()
+};
+
 fn main() -> Result<(), Error> {
     env_logger::init_from_env(
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
 
-    let matter = Matter::new(&TEST_DEV_DET, TEST_DEV_COMM, &TEST_DEV_ATT, MATTER_PORT);
+    let matter = Matter::new(&MY_DEV_DET, TEST_DEV_COMM, &TEST_DEV_ATT, MATTER_PORT);
 
     let store = DirKvBlobStore::new_default();
     let buffers: MatterBuffers = MatterBuffers::new();
