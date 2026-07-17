@@ -16,6 +16,7 @@
  */
 
 //! A module containing the mDNS code used in the examples
+#![allow(unexpected_cfgs)]
 
 use rs_matter::Matter;
 use rs_matter::{crypto::Crypto, error::Error};
