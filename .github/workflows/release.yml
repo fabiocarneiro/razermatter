@@ -62,9 +62,12 @@ jobs:
           - os: windows-latest
             artifact_name: razermatter.exe
             asset_name: razermatter-windows-x86_64.exe
-          - os: macos-latest
+          - os: macos-13
             artifact_name: razermatter
             asset_name: razermatter-macos-x86_64
+          - os: macos-latest
+            artifact_name: razermatter
+            asset_name: razermatter-macos-arm64
 
     permissions:
       contents: write
