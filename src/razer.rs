@@ -28,23 +28,29 @@ fn create_base_report(transaction_id: u8, data_size: u8, command_class: u8, comm
 }
 
 pub fn set_device_lighting(pid: u16, transaction_id: u8, on: bool) -> Result<(), &'static str> {
-    set_device_brightness(pid, transaction_id, if on { 255 } else { 0 })
+    set_device_brightness(pid, transaction_id, 0x00, if on { 255 } else { 0 })
 }
 
-pub fn set_device_brightness(pid: u16, transaction_id: u8, level: u8) -> Result<(), &'static str> {
-    let mut api = HidApi::new().map_err(|_| "Failed to initialize HID API")?;
-    // Refresh devices
-    let _ = api.refresh_devices();
-    
+pub fn set_device_brightness(pid: u16, transaction_id: u8, led_id: u8, level: u8) -> Result<(), &'static str> {
+    let api = HidApi::new().unwrap();
     let mut br_report = create_base_report(transaction_id, 0x03, 0x0F, 0x04);
     let br_args = &mut br_report[9..89];
     br_args[0] = 0x01; // VARSTORE
-    br_args[1] = 0x00; // ZERO_LED
+    br_args[1] = led_id;
     br_args[2] = level;
     br_report[89] = calculate_crc(&br_report);
 
     let paths: std::collections::HashSet<_> = api.device_list()
-        .filter(|d| d.vendor_id() == RAZER_VID && d.product_id() == pid && d.usage_page() == 0x000C && d.usage() == 0x0001)
+        .filter(|d| d.vendor_id() == RAZER_VID && d.product_id() == pid)
+        .filter(|d| {
+            if pid == KBD_PID {
+                d.interface_number() == 2 // The Mouse interface exposes the proprietary protocol for Huntsman TE
+            } else if pid == DOCK_PID {
+                d.usage_page() == 0x000C && d.usage() == 0x0001
+            } else {
+                false
+            }
+        })
         .map(|d| d.path().to_owned())
         .collect();
 
@@ -53,7 +59,8 @@ pub fn set_device_brightness(pid: u16, transaction_id: u8, level: u8) -> Result<
         if let Ok(device) = api.open_path(&path) {
             if device.send_feature_report(&br_report).is_ok() {
                 success = true;
-                break;
+                // DO NOT BREAK! Some interfaces (like the standard keyboard interface) 
+                // might accept the report but do nothing. We must send to all paths!
             }
         }
     }
@@ -65,15 +72,13 @@ pub fn set_device_brightness(pid: u16, transaction_id: u8, level: u8) -> Result<
     }
 }
 
-pub fn set_device_color(pid: u16, transaction_id: u8, r: u8, g: u8, b: u8) -> Result<(), &'static str> {
-    let mut api = HidApi::new().map_err(|_| "Failed to initialize HID API")?;
-    // Refresh devices
-    let _ = api.refresh_devices();
-    
+pub fn set_device_color(pid: u16, transaction_id: u8, led_id: u8, r: u8, g: u8, b: u8) -> Result<(), &'static str> {
+    let api = HidApi::new().unwrap();
+
     let mut report = create_base_report(transaction_id, 0x09, 0x0F, 0x02);
     let args = &mut report[9..89];
     args[0] = 0x01; // VARSTORE
-    args[1] = 0x00; // ZERO_LED
+    args[1] = led_id; 
     args[2] = 0x01; // Static Effect
     args[5] = 0x01;
     args[6] = r;
@@ -83,7 +88,16 @@ pub fn set_device_color(pid: u16, transaction_id: u8, r: u8, g: u8, b: u8) -> Re
     report[89] = calculate_crc(&report);
 
     let paths: std::collections::HashSet<_> = api.device_list()
-        .filter(|d| d.vendor_id() == RAZER_VID && d.product_id() == pid && d.usage_page() == 0x000C && d.usage() == 0x0001)
+        .filter(|d| d.vendor_id() == RAZER_VID && d.product_id() == pid)
+        .filter(|d| {
+            if pid == KBD_PID {
+                d.interface_number() == 2 // The Mouse interface exposes the proprietary protocol for Huntsman TE
+            } else if pid == DOCK_PID {
+                d.usage_page() == 0x000C && d.usage() == 0x0001
+            } else {
+                false
+            }
+        })
         .map(|d| d.path().to_owned())
         .collect();
 
@@ -92,7 +106,7 @@ pub fn set_device_color(pid: u16, transaction_id: u8, r: u8, g: u8, b: u8) -> Re
         if let Ok(device) = api.open_path(&path) {
             if device.send_feature_report(&report).is_ok() {
                 success = true;
-                break;
+                // DO NOT BREAK! 
             }
         }
     }

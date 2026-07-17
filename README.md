@@ -10,7 +10,7 @@ By translating standard Matter lighting concepts (Level Control, Color Control, 
 - **Local Control Only:** No cloud servers, no account logins, just pure local IPv6 control.
 - **Full RGB Support:** Change colors smoothly using the color wheel in your smart home app.
 - **Brightness Dimming:** Supports 1-254 hardware-level dimming.
-- **Reverse-Engineered HID:** Communicates directly with the Razer hardware via `hidapi` using precise 90-byte USB payload sequences (and specifically the `0x1F` transaction ID for the Thunderbolt 4 Dock).
+- **Reverse-Engineered HID:** Communicates directly with the Razer hardware via `hidapi` using precise 90-byte USB payload sequences. It correctly targets the specific HID interfaces for lighting commands (`usage_page 0x000C` for the Dock, and `interface 2` for the Keyboard) to prevent interference with standard inputs.
 
 ## Current Device Support
 
@@ -100,16 +100,7 @@ sudo systemctl start razermatter.service
 
 You can check its logs at any time using `journalctl -u razermatter.service -f`.
 
-## Testing Your Devices
 
-If you'd like to test the raw USB HID commands without launching the full Matter stack, a small test binary is included:
-
-```bash
-cargo build --bin test_dock
-./target/debug/test_dock
-```
-
-This will automatically cycle the connected dock through brightness off/on and static colors to ensure your USB payload logic is working. *(Note: `test_dock` is currently hardcoded for the dock's PID).*
 
 ## Privacy & Security Considerations
 

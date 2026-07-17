@@ -119,14 +119,16 @@ struct RazerOnOffState {
 struct RazerDeviceLogic {
     pid: u16,
     transaction_id: u8,
+    led_id: u8,
     state: Arc<Mutex<RazerOnOffState>>,
 }
 
 impl RazerDeviceLogic {
-    pub fn new(pid: u16, transaction_id: u8) -> Self {
+    pub fn new(pid: u16, transaction_id: u8, led_id: u8) -> Self {
         Self {
             pid,
             transaction_id,
+            led_id,
             state: Arc::new(Mutex::new(RazerOnOffState {
                 on_off: false,
                 start_up_on_off: None,
@@ -214,7 +216,7 @@ impl LevelControlHooks for RazerDeviceLogic {
         ));
 
     fn set_device_level(&self, level: u8) -> Result<Option<u8>, ()> {
-        if let Err(e) = razer::set_device_brightness(self.pid, self.transaction_id, level) {
+        if let Err(e) = razer::set_device_brightness(self.pid, self.transaction_id, self.led_id, level) {
             log::error!("Failed to set brightness (PID: 0x{:04X}): {}", self.pid, e);
         } else {
             log::info!("Brightness set to {} (PID: 0x{:04X})", level, self.pid);
@@ -300,7 +302,7 @@ impl ColorControlHooks for RazerDeviceLogic {
 
     fn set_device_color(&self, target: SetDeviceColor) -> Result<(), ()> {
         let (r, g, b) = target.to_rgb(rs_matter::dm::clusters::app::color_control::RgbGamma::Linear);
-        if let Err(e) = razer::set_device_color(self.pid, self.transaction_id, r, g, b) {
+        if let Err(e) = razer::set_device_color(self.pid, self.transaction_id, self.led_id, r, g, b) {
             log::error!("Failed to set color (PID: 0x{:04X}): {}", self.pid, e);
         } else {
             log::info!("Color set to RGB({}, {}, {}) (PID: 0x{:04X})", r, g, b, self.pid);
@@ -467,7 +469,7 @@ fn main() -> Result<(), Error> {
     let mut rand = crypto.rand()?;
 
     // Handlers for Dock (Endpoint 2)
-    let dock_logic = RazerDeviceLogic::new(razer::DOCK_PID, 0x1F);
+    let dock_logic = RazerDeviceLogic::new(razer::DOCK_PID, 0x1F, 0x00);
     let dock_basic_info = BridgedDeviceBasicInfoHandler::new(Dataver::new_rand(&mut rand), "Razer Thunderbolt 4 Dock");
     
     let dock_on_off_handler = on_off::OnOffHandler::new(Dataver::new_rand(&mut rand), 2, dock_logic.clone());
@@ -490,7 +492,7 @@ fn main() -> Result<(), Error> {
     dock_color_control_handler.init(Some(&dock_on_off_handler));
 
     // Handlers for Keyboard (Endpoint 3)
-    let kbd_logic = RazerDeviceLogic::new(razer::KBD_PID, 0x3F);
+    let kbd_logic = RazerDeviceLogic::new(razer::KBD_PID, 0x3F, 0x05);
     let kbd_basic_info = BridgedDeviceBasicInfoHandler::new(Dataver::new_rand(&mut rand), "Razer Huntsman TE Keyboard");
     
     let kbd_on_off_handler = on_off::OnOffHandler::new(Dataver::new_rand(&mut rand), 3, kbd_logic.clone());
