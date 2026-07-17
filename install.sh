@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -e
+
+echo "================================================="
+echo "       RazerMatter Auto-Install Script"
+echo "================================================="
+
+# 1. System checks
+if [ "$(uname)" != "Linux" ]; then
+    echo "Error: This script is only intended for Linux."
+    exit 1
+fi
+
+if [ "$(uname -m)" != "x86_64" ]; then
+    echo "Error: This script currently only supports x86_64 architecture."
+    exit 1
+fi
+
+if ! command -v curl &> /dev/null; then
+    echo "Error: curl is required but not installed. Please install it."
+    exit 1
+fi
+
+USER_NAME="${SUDO_USER:-$USER}"
+if [ "$USER_NAME" = "root" ]; then
+    echo "Error: Please run this script as your normal user, not as root directly."
+    exit 1
+fi
+
+# 2. Fetch the latest release URL
+echo "[1/6] Finding the latest release..."
+LATEST_TAG=$(curl -sSL "https://api.github.com/repos/fabiocarneiro/razermatter/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+
+if [ -z "$LATEST_TAG" ]; then
+    echo "Error: Could not determine the latest release from GitHub."
+    exit 1
+fi
+
+DOWNLOAD_URL="https://github.com/fabiocarneiro/razermatter/releases/download/${LATEST_TAG}/razermatter-linux-x86_64"
+
+# 3. Download the binary
+echo "[2/6] Downloading RazerMatter ${LATEST_TAG}..."
+sudo curl -sSL -o /usr/local/bin/razermatter "$DOWNLOAD_URL"
+sudo chmod +x /usr/local/bin/razermatter
+
+# 4. Setup udev rules
+echo "[3/6] Configuring USB permissions (udev)..."
+sudo bash -c 'cat > /etc/udev/rules.d/99-razer.rules <<EOF
+# Allow users in the "plugdev" group to access the Razer Thunderbolt 4 Dock
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0f21", MODE="0660", GROUP="plugdev"
+# Allow users in the "plugdev" group to access the Razer Huntsman Tournament Edition
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0243", MODE="0660", GROUP="plugdev"
+EOF'
+
+# Ensure the user is in the plugdev group
+if ! getent group plugdev >/dev/null; then
+    sudo groupadd plugdev
+fi
+sudo usermod -aG plugdev "$USER_NAME"
+
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+
+# 5. Setup systemd service
+echo "[4/6] Configuring background service (systemd)..."
+sudo bash -c "cat > /etc/systemd/system/razermatter.service <<EOF
+[Unit]
+Description=RazerMatter Smart Home Bridge
+After=network.target
+
+[Service]
+User=$USER_NAME
+Group=plugdev
+WorkingDirectory=/home/$USER_NAME
+ExecStart=/usr/local/bin/razermatter
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF"
+
+# 6. Enable and start
+echo "[5/6] Starting RazerMatter service..."
+sudo systemctl daemon-reload
+sudo systemctl enable razermatter.service
+sudo systemctl restart razermatter.service
+
+echo "[6/6] Installation Complete!"
+echo "================================================="
+echo "RazerMatter is now running in the background."
+echo ""
+echo "To pair your bridge to Google Home or Apple Home, you"
+echo "need to scan the QR code printed in the logs."
+echo ""
+echo "Run the following command to view the logs and find the pairing code:"
+echo ""
+echo "    journalctl -u razermatter.service -f"
+echo ""
+echo "================================================="

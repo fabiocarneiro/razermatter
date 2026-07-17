@@ -34,19 +34,20 @@ The project is structured with strict Separation of Concerns (SRP) in mind:
 
 ## Installation & Setup
 
-### 1. Download the Binary
+### Automated Installation (Linux)
 
-The easiest way to install RazerMatter is to download the pre-compiled binary for your operating system from the [GitHub Releases page](https://github.com/fabiocarneiro/razermatter/releases).
+The easiest way to install RazerMatter is using the automated setup script. This script will download the latest pre-compiled binary, configure your USB permissions (`udev` rules), and set it up to run automatically in the background as a `systemd` service.
 
-1. Go to the **Releases** page.
-2. Download the appropriate binary for your system (e.g., `razermatter-linux-x86_64`).
-3. Make it executable:
+Just run this single command in your terminal:
+
 ```bash
-chmod +x razermatter-linux-x86_64
+curl -sSL https://raw.githubusercontent.com/fabiocarneiro/razermatter/master/install.sh | bash
 ```
 
+Once the script finishes, it will give you a command to view the logs (e.g., `journalctl -u razermatter.service -f`). In those logs, you will see a QR Code and a pairing code. Simply scan the code using the **Google Home** or **Apple Home** app to pair the bridge to your network!
+
 <details>
-<summary><b>Alternative: Building from Source</b></summary>
+<summary><b>Manual Installation & Compilation (For Developers)</b></summary>
 
 If you prefer to compile from source, make sure you have the latest stable Rust toolchain and `hidapi` dependencies (e.g. `libudev-dev`, `pkg-config` on Linux).
 
@@ -56,13 +57,8 @@ To build the daemon in release mode:
 cargo build --release
 ```
 The resulting binary will be located at `./target/release/razermatter`.
-</details>
 
-### 2. Configure USB Permissions (Linux udev rules)
-
-By default, the Linux kernel restricts raw USB HID access to the `root` user. For better system security, it is highly recommended to run this daemon as a standard user instead of using `sudo`.
-
-You can grant your user permission to access the Razer devices by creating a `udev` rule:
+**Configure USB Permissions (Linux udev rules)**
 
 1. Create a file at `/etc/udev/rules.d/99-razer.rules`:
 ```bash
@@ -77,59 +73,15 @@ SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0243", MODE="06
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 ```
-*(Make sure your user is part of the `plugdev` group using `sudo usermod -aG plugdev $USER`)*.
 
-### 3. Run the daemon
+**Run the daemon**
 
-Once downloaded (or compiled) and authorized via `udev`, you can run the daemon directly:
+Once compiled and authorized via `udev`, you can run the daemon directly:
 
 ```bash
-./razermatter-linux-x86_64
+./target/release/razermatter
 ```
-*(If you skipped the udev rules, you will need to run this with `sudo`)*.
-
-When you first launch the daemon, it will print a standard Matter Pairing Code and a QR code in the terminal. You can scan this QR code using the Google Home or Apple Home app to pair the bridge to your network. Once paired, all supported devices will appear as separate lights!
-
-### 4. Running as a Service (systemd on Linux)
-
-To ensure the bridge starts automatically whenever your computer boots up, you can set it up as a background `systemd` service.
-
-1. Move the binary to a permanent location, such as `/usr/local/bin/`:
-```bash
-sudo mv razermatter-linux-x86_64 /usr/local/bin/razermatter
-```
-
-2. Create a service file at `/etc/systemd/system/razermatter.service` (you'll need `sudo`):
-```ini
-[Unit]
-Description=RazerMatter Smart Home Bridge
-After=network.target
-
-[Service]
-# If you configured the udev rules above, you can run this as your standard user!
-# Otherwise, change this to User=root
-User=<your-username>
-Group=plugdev
-WorkingDirectory=/home/<your-username>
-ExecStart=/usr/local/bin/razermatter
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-```
-*(Note: Replace `<your-username>` with your actual Linux username).*
-
-3. Enable and start the service:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable razermatter.service
-sudo systemctl start razermatter.service
-```
-
-You can check its logs at any time using `journalctl -u razermatter.service -f`.
-
-
+</details>
 
 ## Privacy & Security Considerations
 
