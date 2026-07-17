@@ -18,6 +18,14 @@ By translating standard Matter lighting concepts (Level Control, Color Control, 
 - Razer Huntsman Tournament Edition (VID: `0x1532`, PID: `0x0243`)
 *(Note: Support for other Razer devices can be added by duplicating the endpoints and updating USB PID targets).*
 
+## Architecture
+
+The project is structured with strict Separation of Concerns (SRP) in mind:
+- `src/hardware`: Handles raw USB HID device communication. This layer is decoupled and vendor-agnostic, accepting raw byte payloads.
+- `src/protocol`: Contains proprietary byte-level payload assembly and CRC calculation for Razer devices, purely mathematically and completely separate from hardware IO.
+- `src/bridge`: Handles the Matter server, MDNS orchestration, cluster state logic (OnOff, LevelControl, ColorControl), and mapping to the hardware layer. 
+- `src/main.rs`: A minimal entry point that boots the Matter server.
+
 ## Prerequisites
 
 - **Rust:** You'll need the latest stable Rust toolchain to build this project.
