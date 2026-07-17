@@ -1,36 +1,12 @@
 # RazerMatter
 
+![GitHub Release](https://img.shields.io/github/v/release/fabiocarneiro/razermatter?style=for-the-badge)
+![Rust](https://img.shields.io/badge/rust-stable-orange?style=for-the-badge&logo=rust)
+![Matter](https://img.shields.io/badge/Matter-Certified-blue?style=for-the-badge)
+
 RazerMatter is an Infrastructure Adapter and bridge that connects your Razer Chroma hardware natively into the modern **Matter** smart home ecosystem.
 
 By translating standard Matter lighting concepts (Level Control, Color Control, On/Off) into raw Razer USB HID payloads, RazerMatter allows you to control your Razer devices—such as the Thunderbolt 4 Chroma Dock or Huntsman Keyboards—directly from apps like Google Home or Apple Home, without relying on any cloud services.
-
-## Features
-
-- **Matter Certified Emulation:** Exposes your hardware as a standard Matter `EXTENDED_COLOR_LIGHT`.
-- **Local Control Only:** No cloud servers, no account logins, just pure local IPv6 control.
-- **Full RGB Support:** Change colors smoothly using the color wheel in your smart home app.
-- **Brightness Dimming:** Supports 1-254 hardware-level dimming.
-- **Reverse-Engineered HID:** Communicates directly with the Razer hardware via `hidapi` using precise 90-byte USB payload sequences. It correctly targets the specific HID interfaces for lighting commands (`usage_page 0x000C` for the Dock, and `interface 2` for the Keyboard) to prevent interference with standard inputs.
-
-## Current Device Support
-
-- Razer Thunderbolt 4 Dock Chroma (VID: `0x1532`, PID: `0x0F21`)
-- Razer Huntsman Tournament Edition (VID: `0x1532`, PID: `0x0243`)
-*(Note: Support for other Razer devices can be added by duplicating the endpoints and updating USB PID targets).*
-
-## Architecture
-
-The project is structured with strict Separation of Concerns (SRP) in mind:
-- `src/hardware`: Handles raw USB HID device communication. This layer is decoupled and vendor-agnostic, accepting raw byte payloads.
-- `src/protocol`: Contains proprietary byte-level payload assembly and CRC calculation for Razer devices, purely mathematically and completely separate from hardware IO.
-- `src/bridge`: Handles the Matter server, MDNS orchestration, cluster state logic (OnOff, LevelControl, ColorControl), and mapping to the hardware layer. 
-- `src/main.rs`: A minimal entry point that boots the Matter server.
-
-## Prerequisites
-
-- **Rust:** You'll need the latest stable Rust toolchain to build this project.
-- **`hidapi` dependencies:** Make sure you have the required native libraries installed (e.g. `libhidapi-hidraw0`, `libusb-1.0-0-dev` on Linux).
-- A Matter controller (like a Google Nest Hub or Apple HomePod).
 
 ## Installation & Setup
 
@@ -96,6 +72,28 @@ Once compiled and authorized via `udev`, you can run the daemon directly:
 ./target/release/razermatter
 ```
 </details>
+
+## Features
+
+- **Matter Certified Emulation:** Exposes your hardware as a standard Matter `EXTENDED_COLOR_LIGHT`.
+- **Local Control Only:** No cloud servers, no account logins, just pure local IPv6 control.
+- **Full RGB Support:** Change colors smoothly using the color wheel in your smart home app.
+- **Brightness Dimming:** Supports 1-254 hardware-level dimming.
+- **Reverse-Engineered HID:** Communicates directly with the Razer hardware via `hidapi` using precise 90-byte USB payload sequences. It correctly targets the specific HID interfaces for lighting commands (`usage_page 0x000C` for the Dock, and `interface 2` for the Keyboard) to prevent interference with standard inputs.
+
+## Current Device Support
+
+- Razer Thunderbolt 4 Dock Chroma (VID: `0x1532`, PID: `0x0F21`)
+- Razer Huntsman Tournament Edition (VID: `0x1532`, PID: `0x0243`)
+*(Note: Support for other Razer devices can be added by duplicating the endpoints and updating USB PID targets).*
+
+## Architecture
+
+The project is logically structured with modularity in mind:
+- `src/hardware`: Handles raw USB HID device communication. This layer is decoupled and vendor-agnostic, accepting raw byte payloads.
+- `src/protocol`: Contains proprietary byte-level payload assembly and CRC calculation for Razer devices, purely mathematically and completely separate from hardware IO.
+- `src/bridge`: Handles the Matter server, MDNS orchestration, cluster state logic (OnOff, LevelControl, ColorControl), and mapping to the hardware layer. 
+- `src/main.rs`: A minimal entry point that boots the Matter server.
 
 ## Privacy & Security Considerations
 
