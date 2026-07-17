@@ -43,8 +43,8 @@ pub fn set_device_brightness(pid: u16, transaction_id: u8, level: u8) -> Result<
     br_args[2] = level;
     br_report[89] = calculate_crc(&br_report);
 
-    let paths: Vec<_> = api.device_list()
-        .filter(|d| d.vendor_id() == RAZER_VID && d.product_id() == pid)
+    let paths: std::collections::HashSet<_> = api.device_list()
+        .filter(|d| d.vendor_id() == RAZER_VID && d.product_id() == pid && d.usage_page() == 0x000C && d.usage() == 0x0001)
         .map(|d| d.path().to_owned())
         .collect();
 
@@ -61,7 +61,7 @@ pub fn set_device_brightness(pid: u16, transaction_id: u8, level: u8) -> Result<
     if success {
         Ok(())
     } else {
-        Err("Failed to send brightness report on any interface")
+        Err("Failed to send brightness report on any valid interface")
     }
 }
 
@@ -82,8 +82,8 @@ pub fn set_device_color(pid: u16, transaction_id: u8, r: u8, g: u8, b: u8) -> Re
     
     report[89] = calculate_crc(&report);
 
-    let paths: Vec<_> = api.device_list()
-        .filter(|d| d.vendor_id() == RAZER_VID && d.product_id() == pid)
+    let paths: std::collections::HashSet<_> = api.device_list()
+        .filter(|d| d.vendor_id() == RAZER_VID && d.product_id() == pid && d.usage_page() == 0x000C && d.usage() == 0x0001)
         .map(|d| d.path().to_owned())
         .collect();
 
@@ -100,7 +100,7 @@ pub fn set_device_color(pid: u16, transaction_id: u8, r: u8, g: u8, b: u8) -> Re
     if success {
         Ok(())
     } else {
-        Err("Failed to send color feature report on any interface")
+        Err("Failed to send color feature report on any valid interface")
     }
 }
 
