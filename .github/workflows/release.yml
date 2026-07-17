@@ -4,10 +4,52 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      level:
+        description: 'Release level (patch, minor, major)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
 
 jobs:
+  bump-version:
+    name: Bump Version
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      new_tag: ${{ steps.cargo_release.outputs.new_tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Install cargo-release
+        uses: taiki-e/install-action@cargo-release
+
+      - name: Run cargo-release
+        id: cargo_release
+        run: |
+          cargo release ${{ github.event.inputs.level }} --execute --no-confirm --no-publish
+          NEW_TAG=$(git describe --tags --abbrev=0)
+          echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+
   build-and-release:
     name: Build and Release
+    needs: bump-version
+    if: always() && (github.event_name == 'push' || needs.bump-version.result == 'success')
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -28,6 +70,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && needs.bump-version.outputs.new_tag || github.ref }}
 
       - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -50,5 +94,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && needs.bump-version.outputs.new_tag || github.ref_name }}
           files: ${{ matrix.asset_name }}
           generate_release_notes: true
