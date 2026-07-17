@@ -32,17 +32,33 @@ The project is structured with strict Separation of Concerns (SRP) in mind:
 - **`hidapi` dependencies:** Make sure you have the required native libraries installed (e.g. `libhidapi-hidraw0`, `libusb-1.0-0-dev` on Linux).
 - A Matter controller (like a Google Nest Hub or Apple HomePod).
 
-## Building & Running
+## Installation & Setup
 
-### 1. Build the binary
+### 1. Download the Binary
+
+The easiest way to install RazerMatter is to download the pre-compiled binary for your operating system from the [GitHub Releases page](https://github.com/fabiocarneiro/razermatter/releases).
+
+1. Go to the **Releases** page.
+2. Download the appropriate binary for your system (e.g., `razermatter-linux-x86_64`).
+3. Make it executable:
+```bash
+chmod +x razermatter-linux-x86_64
+```
+
+<details>
+<summary><b>Alternative: Building from Source</b></summary>
+
+If you prefer to compile from source, make sure you have the latest stable Rust toolchain and `hidapi` dependencies (e.g. `libudev-dev`, `pkg-config` on Linux).
 
 To build the daemon in release mode:
 
 ```bash
 cargo build --release
 ```
+The resulting binary will be located at `./target/release/razermatter`.
+</details>
 
-### 2. Configure USB Permissions (udev rules)
+### 2. Configure USB Permissions (Linux udev rules)
 
 By default, the Linux kernel restricts raw USB HID access to the `root` user. For better system security, it is highly recommended to run this daemon as a standard user instead of using `sudo`.
 
@@ -65,20 +81,25 @@ sudo udevadm trigger
 
 ### 3. Run the daemon
 
-Once compiled and authorized via `udev`, you can run the daemon directly:
+Once downloaded (or compiled) and authorized via `udev`, you can run the daemon directly:
 
 ```bash
-./target/release/razermatter
+./razermatter-linux-x86_64
 ```
 *(If you skipped the udev rules, you will need to run this with `sudo`)*.
 
 When you first launch the daemon, it will print a standard Matter Pairing Code and a QR code in the terminal. You can scan this QR code using the Google Home or Apple Home app to pair the bridge to your network. Once paired, all supported devices will appear as separate lights!
 
-### 4. Running as a Service (systemd)
+### 4. Running as a Service (systemd on Linux)
 
 To ensure the bridge starts automatically whenever your computer boots up, you can set it up as a background `systemd` service.
 
-1. Create a service file at `/etc/systemd/system/razermatter.service` (you'll need `sudo`):
+1. Move the binary to a permanent location, such as `/usr/local/bin/`:
+```bash
+sudo mv razermatter-linux-x86_64 /usr/local/bin/razermatter
+```
+
+2. Create a service file at `/etc/systemd/system/razermatter.service` (you'll need `sudo`):
 ```ini
 [Unit]
 Description=RazerMatter Smart Home Bridge
@@ -89,8 +110,8 @@ After=network.target
 # Otherwise, change this to User=root
 User=<your-username>
 Group=plugdev
-WorkingDirectory=/home/<your-username>/razermatter
-ExecStart=/home/<your-username>/razermatter/target/release/razermatter
+WorkingDirectory=/home/<your-username>
+ExecStart=/usr/local/bin/razermatter
 Restart=always
 RestartSec=3
 
@@ -99,7 +120,7 @@ WantedBy=multi-user.target
 ```
 *(Note: Replace `<your-username>` with your actual Linux username).*
 
-2. Enable and start the service:
+3. Enable and start the service:
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable razermatter.service
