@@ -95,15 +95,21 @@ sudo systemctl daemon-reload
 sudo systemctl enable razermatter.service
 sudo systemctl restart razermatter.service
 
-echo "[6/6] Installation Complete!"
+echo "Waiting for the Matter pairing code to generate..."
+sleep 4
+
 echo "================================================="
-echo "RazerMatter is now running in the background."
+echo "            Matter Pairing QR Code"
+echo "================================================="
 echo ""
-echo "To pair your bridge to Google Home or Apple Home, you"
-echo "need to scan the QR code printed in the logs."
+# Extract the QR code from the logs and strip away the timestamp/log prefix so it scans perfectly
+journalctl -u razermatter.service -n 50 --no-pager | grep "██" | sed -E 's/.*INFO.*rs_matter\] //'
 echo ""
-echo "Run the following command to view the logs and find the pairing code:"
+echo "================================================="
+echo "Installation Complete! RazerMatter is running in the background."
+echo "Scan the QR code above using the Google Home or Apple Home app."
 echo ""
-echo "    journalctl -u razermatter.service -f"
-echo ""
+echo "If the QR code is cut off or your terminal is too narrow, you can also"
+echo "view the manual 11-digit text pairing code by checking the logs:"
+echo "    journalctl -u razermatter.service -n 50 --no-pager"
 echo "================================================="
