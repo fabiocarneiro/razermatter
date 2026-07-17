@@ -102,8 +102,8 @@ echo "================================================="
 echo "            Matter Pairing QR Code"
 echo "================================================="
 echo ""
-# Extract the QR code from the logs and strip away the timestamp/log prefix so it scans perfectly
-journalctl -u razermatter.service -n 50 --no-pager | grep "██" | sed -E 's/.*INFO.*rs_matter\] //'
+# Extract the QR code from the logs, strip away the timestamp/log prefix, and take only the last 19 lines (1 full code)
+journalctl -u razermatter.service -n 100 --no-pager | grep "██" | sed -E 's/.*INFO.*rs_matter\] //' | tail -n 19
 echo ""
 echo "================================================="
 echo "Installation Complete! RazerMatter is running in the background."
