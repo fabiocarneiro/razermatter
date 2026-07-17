@@ -19,17 +19,12 @@ use rs_matter::dm::clusters::groups::{self, ClusterHandler as _};
 
 use rs_matter::dm::clusters::decl::bridged_device_basic_information;
 use rs_matter::dm::devices::test::{DAC_PRIVKEY, TEST_DEV_ATT, TEST_DEV_COMM};
-
+use rs_matter::dm::devices::DEV_TYPE_EXTENDED_COLOR_LIGHT;
 use rs_matter::dm::DeviceType;
 
 pub const DEV_TYPE_AGGREGATOR: DeviceType = DeviceType {
     dtype: 0x000E,
     drev: 1,
-};
-
-pub const DEV_TYPE_COLOR_LIGHT: DeviceType = DeviceType {
-    dtype: 0x010C,
-    drev: 3,
 };
 
 pub const DEV_TYPE_BRIDGED_NODE: DeviceType = DeviceType {
@@ -69,7 +64,7 @@ const NODE: Node<'static> = Node {
         ),
         Endpoint::new(
             2, // Dock Endpoint
-            devices!(DEV_TYPE_BRIDGED_NODE, DEV_TYPE_COLOR_LIGHT),
+            devices!(DEV_TYPE_BRIDGED_NODE, DEV_TYPE_EXTENDED_COLOR_LIGHT),
             clusters!(
                 <BridgedDeviceBasicInfoHandler as bridged_device_basic_information::ClusterHandler>::CLUSTER,
                 desc::DescHandler::CLUSTER,
@@ -81,7 +76,7 @@ const NODE: Node<'static> = Node {
         ),
         Endpoint::new(
             3, // Keyboard Endpoint
-            devices!(DEV_TYPE_BRIDGED_NODE, DEV_TYPE_COLOR_LIGHT),
+            devices!(DEV_TYPE_BRIDGED_NODE, DEV_TYPE_EXTENDED_COLOR_LIGHT),
             clusters!(
                 <BridgedDeviceBasicInfoHandler as bridged_device_basic_information::ClusterHandler>::CLUSTER,
                 desc::DescHandler::CLUSTER,

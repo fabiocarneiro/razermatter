@@ -35,6 +35,7 @@ pub struct RazerOnOffState {
     start_up_on_off: Option<StartUpOnOffEnum>,
     current_level: Option<u8>,
     start_up_current_level: Option<u8>,
+    start_up_color_temperature_mireds: Option<u16>,
 }
 
 #[derive(Clone)]
@@ -57,6 +58,7 @@ impl RazerDeviceLogic {
                 start_up_on_off: None,
                 current_level: Some(254),
                 start_up_current_level: None,
+                start_up_color_temperature_mireds: None,
             })),
             hardware,
         }
@@ -223,8 +225,7 @@ impl ColorControlHooks for RazerDeviceLogic {
 
     const COLOR_TEMP_PHYSICAL_MIN_MIREDS: u16 = 153;
     const COLOR_TEMP_PHYSICAL_MAX_MIREDS: u16 = 500;
-
-
+    const COUPLE_COLOR_TEMP_TO_LEVEL_MIN_MIREDS: u16 = Self::COLOR_TEMP_PHYSICAL_MIN_MIREDS;
 
     fn set_device_color(&self, target: SetDeviceColor) -> Result<(), ()> {
         let (r, g, b) = target.to_rgb(rs_matter::dm::clusters::app::color_control::RgbGamma::Linear);
@@ -236,4 +237,17 @@ impl ColorControlHooks for RazerDeviceLogic {
         }
         Ok(())
     }
+
+    fn start_up_color_temperature_mireds(&self) -> Result<Nullable<u16>, Error> {
+        Ok(match self.state.lock().unwrap().start_up_color_temperature_mireds {
+            Some(v) => Nullable::some(v),
+            None => Nullable::none(),
+        })
+    }
+
+    fn set_start_up_color_temperature_mireds(&self, value: Nullable<u16>) -> Result<(), Error> {
+        self.state.lock().unwrap().start_up_color_temperature_mireds = value.into_option();
+        Ok(())
+    }
 }
+
