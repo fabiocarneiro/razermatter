@@ -1,8 +1,6 @@
 # RazerMatter
 
 ![GitHub Release](https://img.shields.io/github/v/release/fabiocarneiro/razermatter?style=for-the-badge)
-![Rust](https://img.shields.io/badge/rust-stable-orange?style=for-the-badge&logo=rust)
-![Matter](https://img.shields.io/badge/Matter-Certified-blue?style=for-the-badge)
 
 RazerMatter is an Infrastructure Adapter and bridge that connects your Razer Chroma hardware natively into the modern **Matter** smart home ecosystem.
 
@@ -75,7 +73,7 @@ Once compiled and authorized via `udev`, you can run the daemon directly:
 
 ## Features
 
-- **Matter Certified Emulation:** Exposes your hardware as a standard Matter `EXTENDED_COLOR_LIGHT`.
+- **Matter Emulation:** Exposes your hardware as a standard Matter `EXTENDED_COLOR_LIGHT`.
 - **Local Control Only:** No cloud servers, no account logins, just pure local IPv6 control.
 - **Full RGB Support:** Change colors smoothly using the color wheel in your smart home app.
 - **Brightness Dimming:** Supports 1-254 hardware-level dimming.
