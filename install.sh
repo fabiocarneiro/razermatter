@@ -70,21 +70,44 @@ sudo usermod -aG plugdev "$USER_NAME"
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
-# 6. Create reset utility
-echo "[5/6] Installing 'razermatter-reset' utility..."
-sudo bash -c 'cat > /usr/local/bin/razermatter-reset <<EOF
+# 6. Create pair utility
+echo "[5/6] Installing 'razermatter-pair' utility..."
+sudo bash -c 'cat > /usr/local/bin/razermatter-pair <<EOF
 #!/usr/bin/env bash
-echo "Resetting RazerMatter pairing state..."
-sudo systemctl stop razermatter.service
-sudo rm -rf /tmp/rs-matter
-sudo systemctl start razermatter.service
-echo "Pairing state reset! Waiting for new QR code..."
+
+if [ "\$1" == "--reset" ]; then
+    echo "Resetting RazerMatter pairing state..."
+    sudo systemctl stop razermatter.service
+    sudo rm -rf /tmp/rs-matter
+    sudo systemctl start razermatter.service
+    echo "Pairing state reset."
+fi
+
+# Check if already paired (directory exists and has files)
+if [ -d "/tmp/rs-matter" ] && [ "\$(ls -A /tmp/rs-matter 2>/dev/null)" ]; then
+    echo "RazerMatter is already paired to a smart home network."
+    echo "To factory-reset and pair to a new network, run:"
+    echo "  razermatter-pair --reset"
+    exit 0
+fi
+
+echo "Waiting for Matter daemon to generate QR code..."
+sudo systemctl restart razermatter.service
 sleep 4
+
+echo "================================================="
+echo "            Matter Pairing QR Code"
+echo "================================================="
+echo ""
 journalctl -u razermatter.service -n 100 --no-pager | grep "██" | sed -E "s/.*INFO.*rs_matter\] //" | tail -n 19
 echo ""
-echo "Scan the QR code above to pair your device."
+echo "================================================="
+echo "Scan the QR code above using the Google Home or Apple Home app."
 EOF'
-sudo chmod +x /usr/local/bin/razermatter-reset
+sudo chmod +x /usr/local/bin/razermatter-pair
+
+# Remove old reset utility if it exists
+sudo rm -f /usr/local/bin/razermatter-reset
 
 # 7. Setup systemd service
 echo "[6/7] Configuring background service (systemd)..."
@@ -111,21 +134,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable razermatter.service
 sudo systemctl restart razermatter.service
 
-echo "Waiting for the Matter pairing code to generate..."
-sleep 4
-
-echo "================================================="
-echo "            Matter Pairing QR Code"
-echo "================================================="
-echo ""
-# Extract the QR code from the logs, strip away the timestamp/log prefix, and take only the last 19 lines (1 full code)
-journalctl -u razermatter.service -n 100 --no-pager | grep "██" | sed -E 's/.*INFO.*rs_matter\] //' | tail -n 19
-echo ""
 echo "================================================="
 echo "Installation Complete! RazerMatter is running in the background."
-echo "Scan the QR code above using the Google Home or Apple Home app."
 echo ""
-echo "If the QR code is cut off or your terminal is too narrow, you can also"
-echo "view the manual 11-digit text pairing code by checking the logs:"
-echo "    journalctl -u razermatter.service -n 50 --no-pager"
+echo "To pair your bridge to a Smart Home network, just run:"
+echo "    razermatter-pair"
 echo "================================================="
