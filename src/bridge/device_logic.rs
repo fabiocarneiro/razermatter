@@ -1,30 +1,18 @@
-use core::pin::pin;
 use std::sync::{Arc, Mutex};
-use std::net::UdpSocket;
-use crate::hardware::{DeviceHardware, razer::HidDeviceManager};
+use crate::hardware::DeviceHardware;
 use crate::protocol::razer::RazerPayload;
 
-use embassy_futures::select::select4;
-use rs_matter::crypto::RngCore;
 
-use rs_matter::crypto::{default_crypto, Crypto};
-use rs_matter::dm::clusters::app::level_control::{self, LevelControlHooks};
+use rs_matter::dm::clusters::app::level_control::LevelControlHooks;
 use rs_matter::dm::clusters::app::color_control::{
-    self, ColorCapabilitiesBitmap, ColorControlHooks, SetDeviceColor,
+    ColorCapabilitiesBitmap, ColorControlHooks, SetDeviceColor,
 };
 use rs_matter::dm::clusters::app::on_off::{
-    self, EffectVariantEnum, OnOffHooks, StartUpOnOffEnum,
+    EffectVariantEnum, OnOffHooks, StartUpOnOffEnum,
 };
 use rs_matter::dm::clusters::decl::on_off as on_off_cluster;
 use rs_matter::dm::clusters::decl::level_control as level_control_cluster;
 use rs_matter::dm::clusters::decl::color_control as color_control_cluster;
-use rs_matter::dm::clusters::desc::{self, ClusterHandler as _};
-use rs_matter::dm::clusters::groups::{self, ClusterHandler as _};
-use rs_matter::dm::clusters::decl::bridged_device_basic_information::*;
-use rs_matter::dm::clusters::decl::bridged_device_basic_information;
-use rs_matter::dm::devices::test::{DAC_PRIVKEY, TEST_DEV_ATT, TEST_DEV_COMM};
-use rs_matter::dm::devices::DEV_TYPE_EXTENDED_COLOR_LIGHT;
-use rs_matter::tlv::{TLVBuilderParent, Utf8StrBuilder};
 use rs_matter::dm::DeviceType;
 
 pub const DEV_TYPE_AGGREGATOR: DeviceType = DeviceType {
@@ -37,22 +25,10 @@ pub const DEV_TYPE_BRIDGED_NODE: DeviceType = DeviceType {
     drev: 1,
 };
 
-use rs_matter::dm::endpoints;
-use rs_matter::dm::networks::eth::EthNetwork;
-use rs_matter::dm::networks::SysNetifs;
-use rs_matter::dm::{Async, Cluster, DataModel, Dataver, Endpoint, EpClMatcher, Node, ReadContext};
+use rs_matter::dm::Cluster;
 use rs_matter::error::Error;
-use rs_matter::im::{EthInteractionModelState, InteractionModel};
-use rs_matter::pairing::qr::QrTextType;
-use rs_matter::pairing::DiscoveryCapabilities;
-use rs_matter::persist::DirKvBlobStore;
-use rs_matter::respond::DefaultResponder;
-use rs_matter::sc::pase::MAX_COMM_WINDOW_TIMEOUT_SECS;
 use rs_matter::tlv::Nullable;
-use rs_matter::transport::exchange::MatterBuffers;
-use rs_matter::transport::MATTER_SOCKET_BIND_ADDR;
-use rs_matter::utils::select::Coalesce;
-use rs_matter::{clusters, devices, root_endpoint, with, Matter, MATTER_PORT};
+use rs_matter::with;
 
 pub struct RazerOnOffState {
     on_off: bool,
