@@ -181,9 +181,20 @@ pub const MY_DEV_DET: BasicInfoConfig = BasicInfoConfig {
 };
 
 pub fn run_server() -> Result<(), rs_matter::error::Error> {
-    env_logger::init_from_env(
+    let qr_only = std::env::args().any(|arg| arg == "--qr-only");
+
+    let mut builder = env_logger::Builder::from_env(
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
+    
+    if qr_only {
+        builder.format(|buf, record| {
+            use std::io::Write;
+            writeln!(buf, "{}", record.args())
+        });
+    }
+    
+    builder.init();
 
     let matter = Matter::new(&MY_DEV_DET, TEST_DEV_COMM, &TEST_DEV_ATT, MATTER_PORT);
 
@@ -196,6 +207,22 @@ pub fn run_server() -> Result<(), rs_matter::error::Error> {
 
     let crypto = default_crypto(rand::thread_rng(), DAC_PRIVKEY);
     let mut rand = crypto.rand()?;
+
+    if qr_only {
+        if matter.is_commissioned() {
+            println!("RazerMatter is already paired to a smart home network.");
+            println!("To factory-reset and pair to a new network, run: razermatter-pair --reset");
+        } else {
+            println!("=================================================");
+            println!("            Matter Pairing QR Code");
+            println!("=================================================\n");
+            matter.print_standard_qr_text(DiscoveryCapabilities::IP)?;
+            matter.print_standard_qr_code(QrTextType::Unicode, DiscoveryCapabilities::IP)?;
+            println!("\n=================================================");
+            println!("Scan the QR code above using the Google Home or Apple Home app.");
+        }
+        std::process::exit(0);
+    }
 
     let hardware: Arc<dyn DeviceHardware> = Arc::new(HidDeviceManager::new());
     

@@ -80,29 +80,9 @@ if [ "\$1" == "--reset" ]; then
     sudo systemctl stop razermatter.service
     sudo rm -rf /tmp/rs-matter
     sudo systemctl start razermatter.service
-    echo "Pairing state reset."
 fi
 
-# Check if already paired (directory exists and has files)
-if [ -d "/tmp/rs-matter" ] && [ "\$(ls -A /tmp/rs-matter 2>/dev/null)" ]; then
-    echo "RazerMatter is already paired to a smart home network."
-    echo "To factory-reset and pair to a new network, run:"
-    echo "  razermatter-pair --reset"
-    exit 0
-fi
-
-echo "Waiting for Matter daemon to generate QR code..."
-sudo systemctl restart razermatter.service
-sleep 4
-
-echo "================================================="
-echo "            Matter Pairing QR Code"
-echo "================================================="
-echo ""
-journalctl -u razermatter.service -n 100 --no-pager | grep "██" | sed -E "s/.*INFO.*rs_matter\] //" | tail -n 19
-echo ""
-echo "================================================="
-echo "Scan the QR code above using the Google Home or Apple Home app."
+sudo /usr/local/bin/razermatter --qr-only
 EOF'
 sudo chmod +x /usr/local/bin/razermatter-pair
 
