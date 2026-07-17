@@ -54,7 +54,7 @@ impl RazerDeviceLogic {
             transaction_id,
             led_id,
             state: Arc::new(Mutex::new(RazerOnOffState {
-                on_off: false,
+                on_off: true,
                 start_up_on_off: None,
                 current_level: Some(254),
                 start_up_current_level: None,
