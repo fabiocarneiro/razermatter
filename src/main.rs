@@ -246,8 +246,7 @@ impl ColorControlHooks for RazerDeviceLogic {
             color_control_cluster::Feature::HUE_AND_SATURATION.bits()
                 | color_control_cluster::Feature::ENHANCED_HUE.bits()
                 | color_control_cluster::Feature::COLOR_LOOP.bits()
-                | color_control_cluster::Feature::XY.bits()
-                | color_control_cluster::Feature::COLOR_TEMPERATURE.bits(),
+                | color_control_cluster::Feature::XY.bits(),
         )
         .with_attrs(with!(
             required;
@@ -256,7 +255,6 @@ impl ColorControlHooks for RazerDeviceLogic {
                 | color_control_cluster::AttributeId::RemainingTime
                 | color_control_cluster::AttributeId::CurrentX
                 | color_control_cluster::AttributeId::CurrentY
-                | color_control_cluster::AttributeId::ColorTemperatureMireds
                 | color_control_cluster::AttributeId::ColorMode
                 | color_control_cluster::AttributeId::Options
                 | color_control_cluster::AttributeId::NumberOfPrimaries
@@ -268,10 +266,6 @@ impl ColorControlHooks for RazerDeviceLogic {
                 | color_control_cluster::AttributeId::ColorLoopStartEnhancedHue
                 | color_control_cluster::AttributeId::ColorLoopStoredEnhancedHue
                 | color_control_cluster::AttributeId::ColorCapabilities
-                | color_control_cluster::AttributeId::ColorTempPhysicalMinMireds
-                | color_control_cluster::AttributeId::ColorTempPhysicalMaxMireds
-                | color_control_cluster::AttributeId::CoupleColorTempToLevelMinMireds
-                | color_control_cluster::AttributeId::StartUpColorTemperatureMireds
         ))
         .with_cmds(with!(
             color_control_cluster::CommandId::MoveToHue
@@ -284,15 +278,12 @@ impl ColorControlHooks for RazerDeviceLogic {
                 | color_control_cluster::CommandId::MoveToColor
                 | color_control_cluster::CommandId::MoveColor
                 | color_control_cluster::CommandId::StepColor
-                | color_control_cluster::CommandId::MoveToColorTemperature
                 | color_control_cluster::CommandId::EnhancedMoveToHue
                 | color_control_cluster::CommandId::EnhancedMoveHue
                 | color_control_cluster::CommandId::EnhancedStepHue
                 | color_control_cluster::CommandId::EnhancedMoveToHueAndSaturation
                 | color_control_cluster::CommandId::ColorLoopSet
                 | color_control_cluster::CommandId::StopMoveStep
-                | color_control_cluster::CommandId::MoveColorTemperature
-                | color_control_cluster::CommandId::StepColorTemperature
         ));
 
     const COLOR_CAPABILITIES: ColorCapabilitiesBitmap =
@@ -300,8 +291,7 @@ impl ColorControlHooks for RazerDeviceLogic {
             ColorCapabilitiesBitmap::HUE_SATURATION.bits()
                 | ColorCapabilitiesBitmap::ENHANCED_HUE.bits()
                 | ColorCapabilitiesBitmap::COLOR_LOOP.bits()
-                | ColorCapabilitiesBitmap::XY.bits()
-                | ColorCapabilitiesBitmap::COLOR_TEMPERATURE.bits(),
+                | ColorCapabilitiesBitmap::XY.bits(),
         );
 
     const COLOR_TEMP_PHYSICAL_MIN_MIREDS: u16 = 153;
