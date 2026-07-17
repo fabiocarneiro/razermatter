@@ -70,8 +70,24 @@ sudo usermod -aG plugdev "$USER_NAME"
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
-# 6. Setup systemd service
-echo "[5/6] Configuring background service (systemd)..."
+# 6. Create reset utility
+echo "[5/6] Installing 'razermatter-reset' utility..."
+sudo bash -c 'cat > /usr/local/bin/razermatter-reset <<EOF
+#!/usr/bin/env bash
+echo "Resetting RazerMatter pairing state..."
+sudo systemctl stop razermatter.service
+sudo rm -rf /tmp/rs-matter
+sudo systemctl start razermatter.service
+echo "Pairing state reset! Waiting for new QR code..."
+sleep 4
+journalctl -u razermatter.service -n 100 --no-pager | grep "██" | sed -E "s/.*INFO.*rs_matter\] //" | tail -n 19
+echo ""
+echo "Scan the QR code above to pair your device."
+EOF'
+sudo chmod +x /usr/local/bin/razermatter-reset
+
+# 7. Setup systemd service
+echo "[6/7] Configuring background service (systemd)..."
 sudo bash -c "cat > /etc/systemd/system/razermatter.service <<EOF
 [Unit]
 Description=RazerMatter Smart Home Bridge
@@ -89,8 +105,8 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF"
 
-# 7. Enable and start
-echo "[6/6] Starting RazerMatter service..."
+# 8. Enable and start
+echo "[7/7] Starting RazerMatter service..."
 sudo systemctl daemon-reload
 sudo systemctl enable razermatter.service
 sudo systemctl restart razermatter.service

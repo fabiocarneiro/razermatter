@@ -44,7 +44,15 @@ Just run this single command in your terminal:
 curl -sSL https://raw.githubusercontent.com/fabiocarneiro/razermatter/master/install.sh | bash
 ```
 
-Once the script finishes, it will give you a command to view the logs (e.g., `journalctl -u razermatter.service -f`). In those logs, you will see a QR Code and a pairing code. Simply scan the code using the **Google Home** or **Apple Home** app to pair the bridge to your network!
+Once the script finishes, it will print a beautifully formatted QR Code into your terminal. Simply scan the code using the **Google Home** or **Apple Home** app to pair the bridge to your network!
+
+> [!TIP]
+> **Resetting the Pairing State**
+> If you ever need to factory-reset the bridge to pair it with a different home network, you can run the built-in reset command from anywhere in your terminal:
+> ```bash
+> razermatter-reset
+> ```
+> This will automatically stop the service, clear the secure pairing storage (`/tmp/rs-matter`), restart the bridge, and print out a brand new QR Code for you to scan.
 
 <details>
 <summary><b>Manual Installation & Compilation (For Developers)</b></summary>
