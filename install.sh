@@ -38,13 +38,22 @@ fi
 
 DOWNLOAD_URL="https://github.com/fabiocarneiro/razermatter/releases/download/${LATEST_TAG}/razermatter-linux-x86_64"
 
-# 3. Download the binary
-echo "[2/6] Downloading RazerMatter ${LATEST_TAG}..."
-sudo curl -sSL -o /usr/local/bin/razermatter "$DOWNLOAD_URL"
-sudo chmod +x /usr/local/bin/razermatter
+# 3. Stop service if it exists
+if systemctl is-active --quiet razermatter.service; then
+    echo "[2/6] Stopping existing service..."
+    sudo systemctl stop razermatter.service
+else
+    echo "[2/6] Preparing installation..."
+fi
 
-# 4. Setup udev rules
-echo "[3/6] Configuring USB permissions (udev)..."
+# 4. Download the binary
+echo "[3/6] Downloading RazerMatter ${LATEST_TAG}..."
+curl -sSL -o /tmp/razermatter_download "$DOWNLOAD_URL"
+chmod +x /tmp/razermatter_download
+sudo mv /tmp/razermatter_download /usr/local/bin/razermatter
+
+# 5. Setup udev rules
+echo "[4/6] Configuring USB permissions (udev)..."
 sudo bash -c 'cat > /etc/udev/rules.d/99-razer.rules <<EOF
 # Allow users in the "plugdev" group to access the Razer Thunderbolt 4 Dock
 SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1532", ATTRS{idProduct}=="0f21", MODE="0660", GROUP="plugdev"
@@ -61,8 +70,8 @@ sudo usermod -aG plugdev "$USER_NAME"
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
-# 5. Setup systemd service
-echo "[4/6] Configuring background service (systemd)..."
+# 6. Setup systemd service
+echo "[5/6] Configuring background service (systemd)..."
 sudo bash -c "cat > /etc/systemd/system/razermatter.service <<EOF
 [Unit]
 Description=RazerMatter Smart Home Bridge
@@ -80,8 +89,8 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF"
 
-# 6. Enable and start
-echo "[5/6] Starting RazerMatter service..."
+# 7. Enable and start
+echo "[6/6] Starting RazerMatter service..."
 sudo systemctl daemon-reload
 sudo systemctl enable razermatter.service
 sudo systemctl restart razermatter.service
