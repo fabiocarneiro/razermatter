@@ -3,6 +3,10 @@ name = "razermatter"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "razermatter_lib"
+path = "src/lib.rs"
+
 [dependencies]
 async-io = "2.6.0"
 embassy-futures = "0.1.2"
