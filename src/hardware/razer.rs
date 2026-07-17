@@ -1,7 +1,7 @@
 use hidapi::HidApi;
 use std::collections::HashSet;
 use crate::protocol::RazerPayload;
-use super::RazerHardware;
+use super::DeviceHardware;
 
 pub const RAZER_VID: u16 = 0x1532;
 pub const DOCK_PID: u16 = 0x0F21;
@@ -15,7 +15,7 @@ impl HidDeviceManager {
     }
 }
 
-impl RazerHardware for HidDeviceManager {
+impl DeviceHardware for HidDeviceManager {
     fn send_report(&self, pid: u16, payload: &RazerPayload) -> Result<(), &'static str> {
         let api = HidApi::new().map_err(|_| "Failed to initialize HID API")?;
 

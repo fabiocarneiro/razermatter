@@ -1,7 +1,7 @@
 use core::pin::pin;
 use std::sync::{Arc, Mutex};
 use std::net::UdpSocket;
-use razermatter_lib::hardware::{RazerHardware, razer::HidDeviceManager};
+use razermatter_lib::hardware::{DeviceHardware, razer::HidDeviceManager};
 use razermatter_lib::protocol::RazerPayload;
 
 use embassy_futures::select::select4;
@@ -122,11 +122,11 @@ struct RazerDeviceLogic {
     transaction_id: u8,
     led_id: u8,
     state: Arc<Mutex<RazerOnOffState>>,
-    hardware: Arc<dyn RazerHardware>,
+    hardware: Arc<dyn DeviceHardware>,
 }
 
 impl RazerDeviceLogic {
-    pub fn new(pid: u16, transaction_id: u8, led_id: u8, hardware: Arc<dyn RazerHardware>) -> Self {
+    pub fn new(pid: u16, transaction_id: u8, led_id: u8, hardware: Arc<dyn DeviceHardware>) -> Self {
         Self {
             pid,
             transaction_id,
@@ -474,7 +474,7 @@ fn main() -> Result<(), Error> {
     let crypto = default_crypto(rand::thread_rng(), DAC_PRIVKEY);
     let mut rand = crypto.rand()?;
 
-    let hardware: Arc<dyn RazerHardware> = Arc::new(HidDeviceManager::new());
+    let hardware: Arc<dyn DeviceHardware> = Arc::new(HidDeviceManager::new());
     
     // Handlers for Dock (Endpoint 2)
     let dock_logic = RazerDeviceLogic::new(razermatter_lib::hardware::razer::DOCK_PID, 0x1F, 0x00, hardware.clone());

@@ -1,8 +1,5 @@
+pub mod interface;
 pub mod razer;
 
-use crate::protocol::RazerPayload;
-
-/// A generic hardware trait that could be implemented by Razer, Corsair, etc.
-pub trait RazerHardware: Send + Sync {
-    fn send_report(&self, pid: u16, payload: &RazerPayload) -> Result<(), &'static str>;
-}
+// We re-export the trait so it can still be accessed cleanly via `razermatter_lib::hardware::DeviceHardware`
+pub use interface::DeviceHardware;
