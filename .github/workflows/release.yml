@@ -57,15 +57,19 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
             artifact_name: razermatter
             asset_name: razermatter-linux-x86_64
           - os: windows-latest
+            target: x86_64-pc-windows-msvc
             artifact_name: razermatter.exe
             asset_name: razermatter-windows-x86_64.exe
-          - os: macos-13
+          - os: macos-latest
+            target: x86_64-apple-darwin
             artifact_name: razermatter
             asset_name: razermatter-macos-x86_64
           - os: macos-latest
+            target: aarch64-apple-darwin
             artifact_name: razermatter
             asset_name: razermatter-macos-arm64
 
@@ -84,17 +88,19 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - name: Build release binary
-        run: cargo build --release
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Rename binary for release (Linux/macOS)
         if: matrix.os != 'windows-latest'
-        run: mv target/release/${{ matrix.artifact_name }} ${{ matrix.asset_name }}
+        run: mv target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ${{ matrix.asset_name }}
 
       - name: Rename binary for release (Windows)
         if: matrix.os == 'windows-latest'
-        run: move target/release/${{ matrix.artifact_name }} ${{ matrix.asset_name }}
+        run: move target\${{ matrix.target }}\release\${{ matrix.artifact_name }} ${{ matrix.asset_name }}
 
       - name: Create GitHub Release and Upload Asset
         shell: bash
