@@ -1,7 +1,7 @@
 use core::pin::pin;
 use std::sync::Arc;
 use std::net::UdpSocket;
-use crate::hardware::{DeviceHardware, razer::HidDeviceManager};
+use crate::hardware::{RazerHardware, razer::HidDeviceManager};
 
 use embassy_futures::select::select4;
 use rs_matter::crypto::RngCore;
@@ -224,7 +224,7 @@ pub fn run_server() -> Result<(), rs_matter::error::Error> {
         std::process::exit(0);
     }
 
-    let hardware: Arc<dyn DeviceHardware> = Arc::new(HidDeviceManager::new());
+    let hardware: Arc<dyn RazerHardware> = Arc::new(HidDeviceManager::new());
     
     // Handlers for Dock (Endpoint 2)
     let dock_logic = RazerDeviceLogic::new(crate::hardware::razer::DOCK_PID, 0x1F, 0x00, hardware.clone());

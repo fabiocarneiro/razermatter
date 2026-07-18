@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use crate::hardware::DeviceHardware;
+use crate::hardware::RazerHardware;
 use crate::protocol::razer::RazerPayload;
 
 
@@ -44,11 +44,11 @@ pub struct RazerDeviceLogic {
     transaction_id: u8,
     led_id: u8,
     state: Arc<Mutex<RazerOnOffState>>,
-    hardware: Arc<dyn DeviceHardware>,
+    hardware: Arc<dyn RazerHardware>,
 }
 
 impl RazerDeviceLogic {
-    pub fn new(pid: u16, transaction_id: u8, led_id: u8, hardware: Arc<dyn DeviceHardware>) -> Self {
+    pub fn new(pid: u16, transaction_id: u8, led_id: u8, hardware: Arc<dyn RazerHardware>) -> Self {
         // Force hardware sync to match our initial software state (ON at 100% brightness)
         let payload = RazerPayload::new_brightness(transaction_id, led_id, 255);
         if let Err(e) = hardware.send_report(pid, &payload.data) {
