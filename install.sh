@@ -78,7 +78,8 @@ sudo bash -c 'cat > /usr/local/bin/razermatter-pair <<EOF
 if [ "\$1" == "--reset" ]; then
     echo "Resetting RazerMatter pairing state..."
     sudo systemctl stop razermatter.service
-    sudo rm -rf /tmp/rs-matter
+    TARGET_USER="\${SUDO_USER:-\$USER}"
+    sudo rm -rf "/home/\$TARGET_USER/.razermatter"
     sudo systemctl start razermatter.service
 fi
 

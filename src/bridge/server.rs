@@ -198,7 +198,12 @@ pub fn run_server() -> Result<(), rs_matter::error::Error> {
 
     let matter = Matter::new(&MY_DEV_DET, TEST_DEV_COMM, &TEST_DEV_ATT, MATTER_PORT);
 
-    let store = DirKvBlobStore::new_default();
+    let home_dir = std::env::var("HOME").unwrap_or_else(|_| "/home/fabio".to_string());
+    let store_path = std::path::PathBuf::from(format!("{}/.razermatter", home_dir));
+    if !store_path.exists() {
+        std::fs::create_dir_all(&store_path).ok();
+    }
+    let store = DirKvBlobStore::new(store_path);
     let buffers: MatterBuffers = MatterBuffers::new();
     let state: EthInteractionModelState = EthInteractionModelState::new(EthNetwork::new_default());
     let kv = matter.kv(store);
