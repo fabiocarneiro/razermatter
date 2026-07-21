@@ -83,7 +83,8 @@ if [ "\$1" == "--reset" ]; then
     sudo systemctl start razermatter.service
 fi
 
-sudo /usr/local/bin/razermatter --qr-only
+    TARGET_USER="\${SUDO_USER:-\$USER}"
+    sudo HOME="/home/\$TARGET_USER" /usr/local/bin/razermatter --qr-only
 EOF'
 sudo chmod +x /usr/local/bin/razermatter-pair
 
