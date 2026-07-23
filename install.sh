@@ -96,7 +96,8 @@ echo "[6/7] Configuring background service (systemd)..."
 sudo bash -c "cat > /etc/systemd/system/razermatter.service <<EOF
 [Unit]
 Description=RazerMatter Smart Home Bridge
-After=network.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
 User=$USER_NAME
