@@ -70,25 +70,9 @@ sudo usermod -aG plugdev "$USER_NAME"
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
-# 6. Create pair utility
-echo "[5/6] Installing 'razermatter-pair' utility..."
-sudo bash -c 'cat > /usr/local/bin/razermatter-pair <<EOF
-#!/usr/bin/env bash
-
-if [ "\$1" == "--reset" ]; then
-    echo "Resetting RazerMatter pairing state..."
-    sudo systemctl stop razermatter.service
-    TARGET_USER="\${SUDO_USER:-\$USER}"
-    sudo rm -rf "/home/\$TARGET_USER/.razermatter"
-    sudo systemctl start razermatter.service
-fi
-
-    TARGET_USER="\${SUDO_USER:-\$USER}"
-    sudo HOME="/home/\$TARGET_USER" /usr/local/bin/razermatter --qr-only
-EOF'
-sudo chmod +x /usr/local/bin/razermatter-pair
-
-# Remove old reset utility if it exists
+# 6. Clean up old pair utility
+echo "[5/6] Cleaning up old utilities..."
+sudo rm -f /usr/local/bin/razermatter-pair
 sudo rm -f /usr/local/bin/razermatter-reset
 
 # 7. Setup systemd service
@@ -123,4 +107,4 @@ echo "================================================="
 echo ""
 
 # Automatically run the pairing utility to show the QR code (if not already paired)
-/usr/local/bin/razermatter-pair
+/usr/local/bin/razermatter pair

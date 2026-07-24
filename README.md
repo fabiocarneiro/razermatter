@@ -22,7 +22,7 @@ Once the script finishes, your daemon will be fully installed and running.
 
 To pair your bridge to Google Home or Apple Home, simply type this command in your terminal:
 ```bash
-razermatter-pair
+razermatter pair
 ```
 This utility will safely extract the QR code and print it beautifully into your terminal for you to scan.
 
@@ -30,9 +30,9 @@ This utility will safely extract the QR code and print it beautifully into your 
 > **Resetting the Pairing State**
 > If you ever need to factory-reset the bridge to pair it with a different home network, you can run:
 > ```bash
-> razermatter-pair --reset
+> razermatter reset
 > ```
-> This will automatically stop the service, clear the secure pairing storage (`/tmp/rs-matter`), restart the bridge, and print out a brand new QR Code for you to scan.
+> This will automatically stop the service, clear the secure pairing storage (`~/.razermatter`), restart the bridge, and print out a brand new QR Code for you to scan.
 
 <details>
 <summary><b>Manual Installation & Compilation (For Developers)</b></summary>
@@ -96,4 +96,4 @@ The project is logically structured with modularity in mind:
 ## Privacy & Security Considerations
 
 ### No Hardcoded Secrets
-This project contains no hardcoded personal network information (no SSIDs, IPs, or MAC addresses). The Matter device utilizes public CHIP testing certificates during development. All pairing states (such as your fabric IDs) are stored securely in your system's temp directory (`/tmp/rs-matter`) and are explicitly git-ignored.
+This project contains no hardcoded personal network information (no SSIDs, IPs, or MAC addresses). The Matter device utilizes public CHIP testing certificates during development. All pairing states (such as your fabric IDs) are stored securely in your home directory (`~/.razermatter`) and are explicitly git-ignored.

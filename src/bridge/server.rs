@@ -181,7 +181,39 @@ pub const MY_DEV_DET: BasicInfoConfig = BasicInfoConfig {
 };
 
 pub fn run_server() -> Result<(), rs_matter::error::Error> {
-    let qr_only = std::env::args().any(|arg| arg == "--qr-only");
+    let mut qr_only = false;
+    let mut args = std::env::args().skip(1);
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "-v" | "--version" | "version" => {
+                println!("razermatter {}", env!("CARGO_PKG_VERSION"));
+                std::process::exit(0);
+            }
+            "pair" | "--pair" | "--qr-only" => {
+                qr_only = true;
+            }
+            "reset" | "--reset" => {
+                println!("Resetting RazerMatter pairing state...");
+                let _ = std::process::Command::new("sudo")
+                    .args(["systemctl", "stop", "razermatter.service"])
+                    .status();
+
+                let home_dir = std::env::var("HOME").unwrap_or_else(|_| {
+                    let user = std::env::var("USER").unwrap_or_else(|_| "root".into());
+                    format!("/home/{}", user)
+                });
+                let store_path = std::path::PathBuf::from(format!("{}/.razermatter", home_dir));
+                let _ = std::fs::remove_dir_all(store_path);
+
+                let _ = std::process::Command::new("sudo")
+                    .args(["systemctl", "start", "razermatter.service"])
+                    .status();
+                
+                qr_only = true;
+            }
+            _ => {}
+        }
+    }
 
     let mut builder = env_logger::Builder::from_env(
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
@@ -219,7 +251,7 @@ pub fn run_server() -> Result<(), rs_matter::error::Error> {
     if qr_only {
         if matter.is_commissioned() {
             println!("RazerMatter is already paired to a smart home network.");
-            println!("To factory-reset and pair to a new network, run: razermatter-pair --reset");
+            println!("To factory-reset and pair to a new network, run: razermatter --reset");
         } else {
             println!("=================================================");
             println!("            Matter Pairing QR Code");
