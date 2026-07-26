@@ -211,6 +211,12 @@ pub fn run_server() -> Result<(), rs_matter::error::Error> {
                 
                 qr_only = true;
             }
+            "status" | "--status" => {
+                let _ = std::process::Command::new("systemctl")
+                    .args(["status", "razermatter.service", "--no-pager"])
+                    .status();
+                std::process::exit(0);
+            }
             _ => {}
         }
     }
