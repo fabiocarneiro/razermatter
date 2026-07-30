@@ -76,7 +76,7 @@ sudo rm -f /usr/local/bin/razermatter-pair
 sudo rm -f /usr/local/bin/razermatter-reset
 
 # 7. Setup systemd service
-echo "[6/7] Configuring background service (systemd)..."
+echo "[6/8] Configuring background service (systemd)..."
 sudo bash -c "cat > /etc/systemd/system/razermatter.service <<EOF
 [Unit]
 Description=RazerMatter Smart Home Bridge
@@ -95,8 +95,19 @@ RestartSec=3
 WantedBy=multi-user.target
 EOF"
 
-# 8. Enable and start
-echo "[7/7] Starting RazerMatter service..."
+# 8. Power management configuration
+echo "[7/8] Power management configuration"
+echo "If this computer goes to sleep, your Matter devices will appear offline in Google Home."
+read -p "Would you like to disable sleep and hibernation on this machine? [Y/n]: " -r DISABLE_SLEEP < /dev/tty || DISABLE_SLEEP="y"
+if [[ "$DISABLE_SLEEP" =~ ^[Nn]$ ]]; then
+    echo -e "\e[31mLeaving sleep settings unchanged. (Note: Devices may go offline if the computer sleeps)\e[0m"
+else
+    echo "Disabling sleep and hibernation..."
+    sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
+fi
+
+# 9. Enable and start
+echo "[8/8] Starting RazerMatter service..."
 sudo systemctl daemon-reload
 sudo systemctl enable razermatter.service
 sudo systemctl restart razermatter.service
