@@ -97,7 +97,7 @@ EOF"
 
 # 8. Power management configuration
 echo "[7/8] Power management configuration"
-echo "If this computer goes to sleep, your Matter devices will appear offline in Google Home."
+echo "If this computer goes to sleep, your Matter devices will appear offline in your smart home app."
 read -p "Would you like to disable sleep and hibernation on this machine? [Y/n]: " -r DISABLE_SLEEP < /dev/tty || DISABLE_SLEEP="y"
 if [[ "$DISABLE_SLEEP" =~ ^[Nn]$ ]]; then
     echo -e "\e[31mLeaving sleep settings unchanged. (Note: Devices may go offline if the computer sleeps)\e[0m"

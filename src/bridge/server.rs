@@ -265,7 +265,7 @@ pub fn run_server() -> Result<(), rs_matter::error::Error> {
             matter.print_standard_qr_text(DiscoveryCapabilities::IP)?;
             matter.print_standard_qr_code(QrTextType::Unicode, DiscoveryCapabilities::IP)?;
             println!("\n=================================================");
-            println!("Scan the QR code above using the Google Home or Apple Home app.");
+            println!("Scan the QR code above using your smart home app (e.g. Google Home, Apple Home, Home Assistant).");
         }
         std::process::exit(0);
     }

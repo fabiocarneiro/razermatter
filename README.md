@@ -4,7 +4,7 @@
 
 RazerMatter is an Infrastructure Adapter and bridge that connects your Razer Chroma hardware natively into the modern **Matter** smart home ecosystem.
 
-By translating standard Matter lighting concepts (Level Control, Color Control, On/Off) into raw Razer USB HID payloads, RazerMatter allows you to control your Razer devices—such as the Thunderbolt 4 Chroma Dock or Huntsman Keyboards—directly from apps like Google Home or Apple Home, without relying on any cloud services.
+By translating standard Matter lighting concepts (Level Control, Color Control, On/Off) into raw Razer USB HID payloads, RazerMatter allows you to control your Razer devices—such as the Thunderbolt 4 Chroma Dock or Huntsman Keyboards—directly from your favorite smart home platform (Google Home, Apple Home, Home Assistant, SmartThings, etc.), without relying on any cloud services.
 
 ## Installation & Setup
 
@@ -20,7 +20,7 @@ curl -sSL https://raw.githubusercontent.com/fabiocarneiro/razermatter/master/ins
 
 Once the script finishes, your daemon will be fully installed and running.
 
-To pair your bridge to Google Home or Apple Home, simply type this command in your terminal:
+To pair your bridge to your smart home app, simply type this command in your terminal:
 ```bash
 razermatter pair
 ```
