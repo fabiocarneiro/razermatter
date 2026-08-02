@@ -24,7 +24,7 @@ use rs_matter::{crypto::Crypto, error::Error};
 use socket2::{Domain, Protocol, Socket, Type};
 
 #[allow(unused)]
-pub async fn run_mdns<C: Crypto>(matter: &Matter<'_>, crypto: C) -> Result<(), Error> {
+pub async fn run_mdns<C: Crypto + Copy>(matter: &Matter<'_>, crypto: C) -> Result<(), Error> {
     #[cfg(feature = "astro-dnssd")]
     rs_matter::transport::network::mdns::astro::AstroMdns::new()
         .run(matter)
@@ -67,18 +67,18 @@ pub async fn run_mdns<C: Crypto>(matter: &Matter<'_>, crypto: C) -> Result<(), E
 }
 
 #[allow(unused)]
-async fn run_builtin_mdns<C: Crypto>(matter: &Matter<'_>, crypto: C) -> Result<(), Error> {
+async fn run_builtin_mdns<C: Crypto + Copy>(matter: &Matter<'_>, crypto: C) -> Result<(), Error> {
     use std::net::UdpSocket;
 
     use log::{debug, error, info, warn};
 
     use rs_matter::transport::network::{Ipv4Addr, Ipv6Addr};
+    use rs_matter::transport::network::mdns::builtin::{BuiltinMdns, Host};
+    use rs_matter::transport::network::mdns::{
+        MDNS_IPV4_BROADCAST_ADDR, MDNS_IPV6_BROADCAST_ADDR, MDNS_SOCKET_DEFAULT_BIND_ADDR,
+    };
+    use futures_lite::future::FutureExt;
 
-    // NOTE:
-    // Replace with your own network initialization for e.g. `no_std` environments.
-    //
-    // Uses the cross-platform `if-addrs` crate to enumerate interfaces so the
-    // examples work on Linux, macOS and Windows.
     #[inline(never)]
     fn initialize_network() -> Result<(Ipv4Addr, Ipv6Addr, u32), Error> {
         use rs_matter::error::ErrorCode;
@@ -86,16 +86,6 @@ async fn run_builtin_mdns<C: Crypto>(matter: &Matter<'_>, crypto: C) -> Result<(
         let all = if_addrs::get_if_addrs().map_err(|_| ErrorCode::StdIoError)?;
         debug!("Available network interfaces: {:?}", all);
 
-        // A quick and dirty way to pick the interface we want: find one that
-        // has both an IPv6 address AND a non-loopback IPv4 address assigned.
-        // Prefer link-local (fe80::/10) IPv6 addresses — most likely that's
-        // the "real" LAN interface we need, as opposed to all the
-        // docker/libvirt/virtual interfaces that might be present on the
-        // machine and which typically are IPv4-only.
-        //
-        // On Windows the `if_addrs` crate may omit link-local IPv6 addresses,
-        // so we fall back to accepting any non-loopback IPv6 address paired
-        // with an IPv4 address on the same interface.
         let find_ipv6_candidate = |ipv6_filter: fn(std::net::Ipv6Addr) -> bool| {
             all.iter()
                 .filter(|ia| !ia.is_loopback())
@@ -117,11 +107,10 @@ async fn run_builtin_mdns<C: Crypto>(matter: &Matter<'_>, crypto: C) -> Result<(
                 })
         };
 
-        // Last-resort fallback trying to find the ethernet interface even if it doesn't have an IPv6 address assigned.
         let find_fallback_candidate = || {
             all.iter()
                 .filter(|ia| !ia.is_loopback())
-                .filter(|ia| ia.name.starts_with("eth") || ia.name.starts_with("eno"))
+                .filter(|ia| ia.name.starts_with("eth") || ia.name.starts_with("eno") || ia.name.starts_with("wlan") || ia.name.starts_with("wlp"))
                 .map(|ia| match ia.addr {
                     if_addrs::IfAddr::V4(ref v4) => (
                         ia.name.clone(),
@@ -139,14 +128,8 @@ async fn run_builtin_mdns<C: Crypto>(matter: &Matter<'_>, crypto: C) -> Result<(
                 .next()
         };
 
-        // Prefer an interface with a link-local IPv6 address
         let candidate = find_ipv6_candidate(|ip| ip.is_unicast_link_local())
-            // otherwise accept any non-loopback IPv6 address
             .or_else(|| find_ipv6_candidate(|_| true))
-            // otherwise do one last fallback: accept an interface named "eth*" or "eno*" with a non-loopback IPv4 address
-            // even if it doesn't have an IPv6 address assigned.
-            //
-            // This is a common scenario in VMs and containers where the host might not provide an IPv6 address - including GH actions.
             .or_else(|| {
                 warn!("No network interface with a suitable IPv6 address found");
                 find_fallback_candidate()
@@ -158,47 +141,87 @@ async fn run_builtin_mdns<C: Crypto>(matter: &Matter<'_>, crypto: C) -> Result<(
 
         let (iname, ip, ipv6, index) = candidate;
 
-        info!("Will use network interface {iname} with {ip}/{ipv6} for mDNS");
+        debug!("Selected network interface {iname} with {ip}/{ipv6} for mDNS");
 
         Ok((ip.octets().into(), ipv6.octets().into(), index))
     }
 
-    let (ipv4_addr, ipv6_addr, interface) = initialize_network()?;
+    loop {
+        let (ipv4_addr, ipv6_addr, interface) = match initialize_network() {
+            Ok(res) => res,
+            Err(e) => {
+                warn!("mDNS network initialization failed: {:?}, retrying in 5 seconds...", e);
+                async_io::Timer::after(std::time::Duration::from_secs(5)).await;
+                continue;
+            }
+        };
 
-    use rs_matter::transport::network::mdns::builtin::{BuiltinMdns, Host};
-    use rs_matter::transport::network::mdns::{
-        MDNS_IPV4_BROADCAST_ADDR, MDNS_IPV6_BROADCAST_ADDR, MDNS_SOCKET_DEFAULT_BIND_ADDR,
-    };
+        info!("Starting mDNS engine on interface index {interface} with IPs {ipv4_addr:?}/{ipv6_addr:?}");
 
-    // NOTE:
-    // When using a custom UDP stack (e.g. for `no_std` environments), replace with a UDP socket bind + multicast join for your custom UDP stack
-    // The returned socket should be splittable into two halves, where each half implements `UdpSend` and `UdpReceive` respectively
-    let mut socket = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP))?;
-    socket.set_reuse_address(true)?;
-    socket.set_only_v6(false)?;
-    socket.bind(&MDNS_SOCKET_DEFAULT_BIND_ADDR.into())?;
-    let socket = async_io::Async::<UdpSocket>::new_nonblocking(socket.into())?;
+        let create_socket = || -> Result<async_io::Async<UdpSocket>, Error> {
+            use rs_matter::error::ErrorCode;
+            let mut socket = Socket::new(Domain::IPV6, Type::DGRAM, Some(Protocol::UDP))
+                .map_err(|_| ErrorCode::StdIoError)?;
+            socket.set_reuse_address(true).map_err(|_| ErrorCode::StdIoError)?;
+            socket.set_only_v6(false).map_err(|_| ErrorCode::StdIoError)?;
+            socket.bind(&MDNS_SOCKET_DEFAULT_BIND_ADDR.into()).map_err(|_| ErrorCode::StdIoError)?;
+            let socket = async_io::Async::<UdpSocket>::new_nonblocking(socket.into())
+                .map_err(|_| ErrorCode::StdIoError)?;
 
-    socket
-        .get_ref()
-        .join_multicast_v6(&MDNS_IPV6_BROADCAST_ADDR, interface)?;
-    socket
-        .get_ref()
-        .join_multicast_v4(&MDNS_IPV4_BROADCAST_ADDR, &ipv4_addr)?;
+            let _ = socket.get_ref().join_multicast_v6(&MDNS_IPV6_BROADCAST_ADDR, interface);
+            let _ = socket.get_ref().join_multicast_v4(&MDNS_IPV4_BROADCAST_ADDR, &ipv4_addr);
+            Ok(socket)
+        };
 
-    BuiltinMdns::new()
-        .run(
+        let socket = match create_socket() {
+            Ok(s) => s,
+            Err(e) => {
+                warn!("Failed to bind mDNS socket: {:?}, retrying in 5 seconds...", e);
+                async_io::Timer::after(std::time::Duration::from_secs(5)).await;
+                continue;
+            }
+        };
+
+        let mut mdns = BuiltinMdns::new();
+        let host = Host {
+            hostname: "001122334455",
+            ip: ipv4_addr,
+            ipv6: ipv6_addr,
+        };
+
+        let mdns_runner = mdns.run(
             &socket,
             &socket,
-            &Host {
-                hostname: "001122334455", //"rs-matter-demo",
-                ip: ipv4_addr,
-                ipv6: ipv6_addr,
-            },
+            &host,
             Some(ipv4_addr),
             Some(interface),
             matter,
             crypto,
-        )
-        .await
+        );
+
+        let network_watcher = async {
+            loop {
+                async_io::Timer::after(std::time::Duration::from_secs(15)).await;
+                match initialize_network() {
+                    Ok(current) => {
+                        if current != (ipv4_addr, ipv6_addr, interface) {
+                            info!(
+                                "Network interface or IP changed ({:?} -> {:?}), re-binding mDNS...",
+                                (ipv4_addr, ipv6_addr, interface), current
+                            );
+                            break;
+                        }
+                    }
+                    Err(_) => {
+                        warn!("Network interface lost, checking again in 5s...");
+                    }
+                }
+            }
+            Ok(())
+        };
+
+        let _ = mdns_runner.or(network_watcher).await;
+        info!("Network state changed or mDNS task ended, refreshing mDNS socket...");
+        async_io::Timer::after(std::time::Duration::from_secs(1)).await;
+    }
 }
